@@ -1,33 +1,16 @@
-import {
-  ChartColumn,
-  CreditCard,
-  FileText,
-  Landmark,
-  Megaphone,
-  ShieldCheck,
-  Wrench,
-  type LucideIcon,
-} from 'lucide-react'
+import { CreditCard, FileText, Landmark, ShieldCheck, Wrench, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router'
 import { IconCircle } from '@/components/IconCircle'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { site } from '@/config/site'
+import { services } from './services-data'
 
 const quickActions: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/odeme', label: 'Aidat Öde', icon: CreditCard },
   { to: '/havale-bildirimi', label: 'Havale Bildir', icon: Landmark },
   { to: '/taleplerim', label: 'Arıza Bildir', icon: Wrench },
   { to: '/teklif-al', label: 'Teklif Al', icon: FileText },
-]
-
-const services: { title: string; text: string; icon: LucideIcon }[] = [
-  { title: 'Aidat ve Tahsilat', text: 'Aidat takibi, çevrimiçi ödeme ve otomatik makbuz.', icon: CreditCard },
-  { title: 'Muhasebe ve Raporlama', text: 'Gelir, gider ve kasa raporları her an elinizin altında.', icon: ChartColumn },
-  { title: 'Duyuru ve İletişim', text: 'Tüm sakinlere ya da seçtiğiniz bloğa anında duyuru.', icon: Megaphone },
-  { title: 'Arıza ve Talep Takibi', text: 'Talepler fotoğrafla açılır, durumu adım adım izlenir.', icon: Wrench },
-  { title: 'Belge ve Karar Yönetimi', text: 'Kararlar, sözleşmeler ve tutanaklar tek yerde saklanır.', icon: FileText },
-  { title: 'Güvenlik ve KVKK', text: 'Verileriniz KVKK’ya uygun ve yetkiye göre korunur.', icon: ShieldCheck },
 ]
 
 const steps = [

@@ -137,10 +137,17 @@ export function PublicLayout() {
           </div>
         </div>
         <div className="border-t">
-          <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {site.name}. Tüm hakları saklıdır.
-            {site.demo && ' Bu site deneme (demo) sürümüdür; gerçek kişisel veri girmeyin.'}
-          </p>
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} {site.name}. Tüm hakları saklıdır.
+              {site.demo && ' Bu site deneme (demo) sürümüdür; gerçek kişisel veri girmeyin.'}
+            </p>
+            <nav aria-label="Yasal">
+              <Link to="/kvkk" className="hover:text-foreground hover:underline">
+                KVKK Aydınlatma Metni
+              </Link>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>

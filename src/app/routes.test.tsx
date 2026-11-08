@@ -24,9 +24,14 @@ describe('routes', () => {
     expect(screen.getAllByText('Demo').length).toBeGreaterThan(0)
   })
 
-  it('renders a public placeholder page', () => {
-    renderAt('/iletisim')
-    expect(screen.getByRole('heading', { level: 1, name: 'İletişim' })).toBeInTheDocument()
+  it.each([
+    ['/iletisim', 'İletişim'],
+    ['/hizmetler', 'Hizmetlerimiz'],
+    ['/teklif-al', 'Teklif Al'],
+    ['/kvkk', 'KVKK Aydınlatma Metni'],
+  ])('renders the public page %s', (path, heading) => {
+    renderAt(path)
+    expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
   })
 
   it('sends a logged-out visitor from the admin panel to the login page', async () => {

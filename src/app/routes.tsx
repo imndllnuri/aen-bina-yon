@@ -5,7 +5,11 @@ import { ResidentLayout } from '@/app/layouts/ResidentLayout'
 import { PlaceholderPage } from '@/components/PlaceholderPage'
 import { Login } from '@/features/auth/Login'
 import { NotFound } from '@/features/NotFound'
+import { Contact } from '@/features/public/Contact'
 import { Home } from '@/features/public/Home'
+import { Kvkk } from '@/features/public/Kvkk'
+import { Quote } from '@/features/public/Quote'
+import { Services } from '@/features/public/Services'
 import { RequireRole } from '@/lib/auth-guard'
 
 // Every page that a later feature slice will build is a placeholder for now.
@@ -21,9 +25,10 @@ export const routes: RouteObject[] = [
     element: <PublicLayout />,
     children: [
       { path: '/', element: <Home /> },
-      { path: '/hizmetler', element: page('Hizmetler') },
-      { path: '/teklif-al', element: page('Teklif Al') },
-      { path: '/iletisim', element: page('İletişim') },
+      { path: '/hizmetler', element: <Services /> },
+      { path: '/teklif-al', element: <Quote /> },
+      { path: '/iletisim', element: <Contact /> },
+      { path: '/kvkk', element: <Kvkk /> },
       { path: '/giris', element: <Login /> },
       { path: '/auth/onay', element: page('Hesap Onayı') },
     ],

@@ -17,4 +17,13 @@ if (!window.matchMedia) {
     }) as MediaQueryList
 }
 
+// jsdom has no ResizeObserver. Radix UI components (checkbox, select, ...) need it.
+if (!('ResizeObserver' in globalThis)) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
 afterEach(() => cleanup())
