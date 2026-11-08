@@ -64,6 +64,30 @@ npx supabase gen types --remote > src/lib/database.types.ts
 Rules for new migrations: enable RLS in the same file, write explicit `grant` lines, put helper
 functions in the `private` schema, and add a test.
 
+`config.toml` only declares the settings this project manages (login URLs, signups off, minimum
+password). Everything else is commented out on purpose: `config push` leaves undeclared settings
+alone, but the generated local defaults would turn hosted MFA and e-mail protections **off**.
+
+### Hosted project status
+
+- Project `aen-bina-yonetimi` (ref `dogcevoorjlgbmykaqdy`, region eu-west-2). Signups are **off**
+  (invite-only). Migration `0001` and the demo data are applied.
+- The first admin is made by hand: create a user in the dashboard (Authentication → Users → Add
+  user), then run this in the SQL Editor (demo site id from `seed.sql`):
+  ```sql
+  insert into public.site_members (profile_id, site_id, role)
+  values ('<user-uuid>', '00000000-0000-0000-0000-000000000010', 'admin');
+  ```
+
+### Auth e-mails (free plan)
+
+Supabase refuses custom e-mail templates on the free plan while the built-in e-mail provider is
+used, and the built-in provider is limited to 2 e-mails per hour. So `supabase/templates/*.html` are
+**not pushed yet**. The Supabase default links put the session tokens in the URL hash
+(`#access_token=...`), which collides with hash routes (`/#/...`). The login slice must read those
+tokens before the router starts. When a custom SMTP provider is added, un-comment the two template
+blocks in `config.toml`, run `config diff`, then `config push`.
+
 ## Where things are
 
 | Path | What |
