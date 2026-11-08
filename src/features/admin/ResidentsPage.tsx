@@ -77,6 +77,12 @@ function ResidentsContent({ site }: { site: AdminSite }) {
   }
 
   const all = residents.data
+  // How many residency rows each person has on this site. "Daireden çıkar" (delete the row) is only
+  // offered when there is another one: removing a person's ONLY row would make their e-mail look
+  // like it belongs to another company, and inviting them again would then fail. "Taşındı" keeps
+  // the history and has no such problem.
+  const residencyCount = new Map<string, number>()
+  for (const r of all) residencyCount.set(r.profileId, (residencyCount.get(r.profileId) ?? 0) + 1)
   const current = all.filter((r) => isCurrentResidency(r, today))
   const past = all.filter((r) => !isCurrentResidency(r, today))
   const shown = (filter === 'current' ? current : filter === 'past' ? past : all).filter((r) => matchesQuery(r, query))
@@ -217,9 +223,11 @@ function ResidentsContent({ site }: { site: AdminSite }) {
                           ) : (
                             <DropdownMenuItem onSelect={() => setConfirm({ kind: 'activate', resident })}>Hesabı etkinleştir</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem variant="destructive" onSelect={() => setConfirm({ kind: 'remove', resident })}>
-                            Daireden çıkar (kaydı sil)
-                          </DropdownMenuItem>
+                          {(residencyCount.get(resident.profileId) ?? 0) > 1 && (
+                            <DropdownMenuItem variant="destructive" onSelect={() => setConfirm({ kind: 'remove', resident })}>
+                              Daireden çıkar (kaydı sil)
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

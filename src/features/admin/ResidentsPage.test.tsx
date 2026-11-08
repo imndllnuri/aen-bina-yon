@@ -284,15 +284,30 @@ describe('Sakinler page: actions on a resident', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument() // stays open so the message can be read
   })
 
-  it('removes a residency record only after a confirmation', async () => {
+  const twoUnits = [
+    row({ residencyId: 'r5', profileId: 'p5', fullName: 'Çift Daireli', email: 'cift@ornek.com', unitId: 'u1', doorNo: '1' }),
+    row({ residencyId: 'r6', profileId: 'p5', fullName: 'Çift Daireli', email: 'cift@ornek.com', unitId: 'u2', doorNo: '2', relation: 'tenant' }),
+  ]
+
+  it('removes a residency record only after a confirmation (when the person has another one)', async () => {
+    api.fetchResidents.mockResolvedValue(twoUnits)
     const user = userEvent.setup()
     open()
-    const menu = await openMenu(user, 'Ayşe Kaya')
-    await user.click(within(menu).getByRole('menuitem', { name: /Daireden çıkar/ }))
+    await screen.findAllByText('Çift Daireli')
+    await user.click((await screen.findAllByRole('button', { name: 'Çift Daireli için işlemler' }))[0])
+    await user.click(within(await screen.findByRole('menu')).getByRole('menuitem', { name: /Daireden çıkar/ }))
     expect(await screen.findByText('Daireden çıkarılsın mı?')).toBeInTheDocument()
     expect(api.deleteResidency).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Daireden çıkar' }))
-    await waitFor(() => expect(api.deleteResidency).toHaveBeenCalledWith('r1'))
+    await waitFor(() => expect(api.deleteResidency).toHaveBeenCalledWith('r5'))
+  })
+
+  it('does NOT offer "Daireden çıkar" for a person\'s only residency (their e-mail could get stuck); "Taşındı" is there instead', async () => {
+    const user = userEvent.setup()
+    open()
+    const menu = await openMenu(user, 'Ayşe Kaya')
+    expect(within(menu).queryByRole('menuitem', { name: /Daireden çıkar/ })).not.toBeInTheDocument()
+    expect(within(menu).getByRole('menuitem', { name: 'Taşındı olarak işaretle' })).toBeInTheDocument()
   })
 
   it('edits name and phone (an empty phone becomes "no phone")', async () => {

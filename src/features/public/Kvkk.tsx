@@ -4,7 +4,8 @@ import { site } from '@/config/site'
 
 /**
  * PLACEHOLDER legal text (plan, section 14). It must be reviewed by a lawyer before launch.
- * The text only describes what the quote form really does today.
+ * It describes what the site really does today: the "Teklif Al" form and the resident / admin
+ * portal accounts. When this text changes, change KVKK_VERSION (src/config/kvkk.ts) too.
  */
 export function Kvkk() {
   return (
@@ -33,17 +34,26 @@ export function Kvkk() {
 
         <section>
           <h2 className="font-display text-base font-semibold">2. İşlenen veriler</h2>
-          <p className="mt-1 text-muted-foreground">
-            “Teklif Al” formunda yazdığınız ad soyad, telefon, e-posta, yapı tipi, daire sayısı, il, ilçe ve mesaj
-            bilgileri.
-          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">Teklif formu:</strong> “Teklif Al” formunda yazdığınız ad soyad, telefon,
+              e-posta, yapı tipi, daire sayısı, il, ilçe ve mesaj bilgileri.
+            </li>
+            <li>
+              <strong className="text-foreground">Sakin ve yönetici hesapları:</strong> ad soyad, e-posta, telefon, bağlı olduğunuz
+              site, blok ve daire, malik ya da kiracı olduğunuz bilgisi, taşınma tarihleri, hesap durumu ve bu metni
+              onayladığınız tarih ve sürüm. Giriş şifreniz yalnızca size aittir ve yönetim tarafından görülemez.
+            </li>
+          </ul>
         </section>
 
         <section>
           <h2 className="font-display text-base font-semibold">3. İşleme amacı ve hukuki sebep</h2>
           <p className="mt-1 text-muted-foreground">
-            Bilgileriniz, talebiniz üzerine teklif hazırlamak ve sizinle iletişime geçmek amacıyla işlenir. Hukuki sebep,
-            bir sözleşmenin kurulması için talebiniz üzerine gerekli işlemlerin yapılmasıdır.
+            Teklif formundaki bilgiler, talebiniz üzerine teklif hazırlamak ve sizinle iletişime geçmek için işlenir. Hesap
+            bilgileriniz, bina yönetimi hizmetinin yürütülmesi (hesabınıza giriş, duyurular, aidat ve talep takibi) için
+            işlenir. Hukuki sebepler; bir sözleşmenin kurulması ya da ifası, Kat Mülkiyeti Kanunu’ndan doğan yükümlülükler ve
+            meşru menfaattir.
           </p>
         </section>
 

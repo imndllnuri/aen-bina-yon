@@ -26,11 +26,24 @@ describe('parseAuthRedirect', () => {
       accessToken: 'eyJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJ4In0.sig',
       refreshToken: 'abc123',
       type: 'invite',
+      flow: null,
     })
   })
 
   it('reads a recovery (password reset) link', () => {
     expect(parseAuthRedirect(RECOVERY_HASH, '')).toMatchObject({ kind: 'session', type: 'recovery' })
+  })
+
+  it('reads the ?flow=invite marker the invite function adds (a query string before the hash)', () => {
+    expect(parseAuthRedirect(RECOVERY_HASH, '?flow=invite')).toMatchObject({ kind: 'session', type: 'recovery', flow: 'invite' })
+    expect(parseAuthRedirect(INVITE_HASH, '?flow=invite')).toMatchObject({ type: 'invite', flow: 'invite' })
+  })
+
+  it('ignores any other value of ?flow', () => {
+    for (const flow of ['recovery', 'INVITE', '', 'invite<script>', '1']) {
+      expect(parseAuthRedirect(RECOVERY_HASH, `?flow=${encodeURIComponent(flow)}`)).toMatchObject({ flow: null })
+    }
+    expect(parseAuthRedirect(RECOVERY_HASH, '?other=1')).toMatchObject({ flow: null })
   })
 
   it('reads the error of a used or expired link', () => {
@@ -76,12 +89,19 @@ describe('parseAuthRedirect', () => {
 })
 
 describe('routeAfterRedirect', () => {
+  const session = { kind: 'session' as const, accessToken: 'a', refreshToken: 'b' }
+
   it('opens the right page', () => {
-    expect(routeAfterRedirect({ kind: 'session', accessToken: 'a', refreshToken: 'b', type: 'invite' })).toBe('/auth/onay')
-    expect(routeAfterRedirect({ kind: 'session', accessToken: 'a', refreshToken: 'b', type: 'recovery' })).toBe('/sifre-yenile')
-    expect(routeAfterRedirect({ kind: 'session', accessToken: 'a', refreshToken: 'b', type: null })).toBe('/giris')
-    expect(routeAfterRedirect({ kind: 'session', accessToken: 'a', refreshToken: 'b', type: 'magiclink' })).toBe('/giris')
+    expect(routeAfterRedirect({ ...session, type: 'invite', flow: null })).toBe('/auth/onay')
+    expect(routeAfterRedirect({ ...session, type: 'recovery', flow: null })).toBe('/sifre-yenile')
+    expect(routeAfterRedirect({ ...session, type: null, flow: null })).toBe('/giris')
+    expect(routeAfterRedirect({ ...session, type: 'magiclink', flow: null })).toBe('/giris')
     expect(routeAfterRedirect({ kind: 'error', code: 'otp_expired' })).toBe('/auth/onay?error=otp_expired')
+  })
+
+  it('opens the INVITE page for a recovery-type link that carries ?flow=invite (invite clicked before, never finished)', () => {
+    expect(routeAfterRedirect({ ...session, type: 'recovery', flow: 'invite' })).toBe('/auth/onay')
+    expect(routeAfterRedirect({ ...session, type: null, flow: 'invite' })).toBe('/auth/onay')
   })
 })
 
@@ -101,6 +121,14 @@ describe('handleAuthRedirect', () => {
     await handleAuthRedirect()
     expect(mocks.setSession).not.toHaveBeenCalled()
     expect(window.location.hash).toBe('#/giris')
+  })
+
+  it('opens the invite page for a recovery link that carries ?flow=invite, and drops the query string', async () => {
+    visit(RECOVERY_HASH, '?flow=invite')
+    await handleAuthRedirect()
+    expect(window.location.hash).toBe('#/auth/onay')
+    expect(window.location.search).toBe('')
+    expect(mocks.setSession).toHaveBeenCalledTimes(1)
   })
 
   it('removes the tokens from the address BEFORE saving the session, then opens the invite page', async () => {

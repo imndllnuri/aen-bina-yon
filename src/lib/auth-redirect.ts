@@ -15,12 +15,25 @@ import { supabase } from '@/lib/supabase'
 //   2. remove them from the address bar at once (so they never stay in history or get shared),
 //   3. save the session,
 //   4. leave a normal route in the address bar.
+// The invite function also adds "?flow=invite" (a query string BEFORE the hash) to the links it makes.
 
 export type AuthLinkType = 'invite' | 'recovery' | 'signup' | 'magiclink' | 'email_change'
 const LINK_TYPES: readonly string[] = ['invite', 'recovery', 'signup', 'magiclink', 'email_change']
 
 export type AuthRedirect =
-  | { kind: 'session'; accessToken: string; refreshToken: string; type: AuthLinkType | null }
+  | {
+      kind: 'session'
+      accessToken: string
+      refreshToken: string
+      type: AuthLinkType | null
+      /**
+       * "invite" when the address carried ?flow=invite. The invite function adds it to the links it
+       * makes. It matters for a person who already clicked their first invite link (often a mail
+       * scanner does that): Supabase then only allows a RECOVERY-type link, but the person still
+       * has to see the "activate your account" page (with the KVKK tick), not "new password".
+       */
+      flow: 'invite' | null
+    }
   | { kind: 'error'; code: string }
 
 /** Returns what the address holds, or null for a normal visit. Never throws. */
@@ -41,6 +54,7 @@ export function parseAuthRedirect(hash: string, search: string): AuthRedirect | 
       refreshToken,
       // Only known values are kept. The type only decides which page opens next.
       type: type !== null && LINK_TYPES.includes(type) ? (type as AuthLinkType) : null,
+      flow: fromQuery.get('flow') === 'invite' ? 'invite' : null,
     }
   }
 
@@ -56,8 +70,9 @@ export function parseAuthRedirect(hash: string, search: string): AuthRedirect | 
 /** The page to open after the link was handled. */
 export function routeAfterRedirect(redirect: AuthRedirect): string {
   if (redirect.kind === 'error') return `/auth/onay?error=${redirect.code}`
+  // An invite page, whatever the link type says (see `flow` above).
+  if (redirect.flow === 'invite' || redirect.type === 'invite') return '/auth/onay'
   if (redirect.type === 'recovery') return '/sifre-yenile'
-  if (redirect.type === 'invite') return '/auth/onay'
   // Other link types: just open the login page. If the session is valid it forwards the person.
   return '/giris'
 }
