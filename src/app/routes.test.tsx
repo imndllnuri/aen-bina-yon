@@ -36,13 +36,13 @@ describe('routes', () => {
 
   it('sends a logged-out visitor from the admin panel to the login page', async () => {
     const router = renderAt('/yonetim')
-    expect(await screen.findByText(/Giriş formu yapım aşamasında/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Giriş yap' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/giris')
   })
 
   it('sends a logged-out visitor from the resident panel to the login page', async () => {
     const router = renderAt('/borclarim')
-    expect(await screen.findByText(/Giriş formu yapım aşamasında/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Giriş yap' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/giris')
   })
 

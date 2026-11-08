@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { todayIstanbul } from '@/lib/format'
 import { supabase } from '@/lib/supabase'
@@ -59,10 +59,27 @@ export function homePathFor(roles: Role[]): string {
   return '/giris'
 }
 
+/** What the cached auth state looks like after logout. */
+export function loggedOutState(): AuthState {
+  return supabase
+    ? { status: 'anonymous', session: null, roles: [] }
+    : { status: 'unconfigured', session: null, roles: [] }
+}
+
 export function useSignOut() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   return async () => {
-    await supabase?.auth.signOut()
+    try {
+      // 'local' = this device only. The default ('global') would log the person out on every
+      // phone and computer they use.
+      await supabase?.auth.signOut({ scope: 'local' })
+    } catch (error) {
+      console.warn('Sign-out request failed:', error)
+    }
+    // Reset the cached state BEFORE leaving. Otherwise the login page would still see
+    // "signed in" and send the person straight back into the panel.
+    queryClient.setQueryData<AuthState>(AUTH_QUERY_KEY, loggedOutState())
     navigate('/giris', { replace: true })
   }
 }

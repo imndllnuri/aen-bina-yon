@@ -3,7 +3,9 @@ import { AdminLayout } from '@/app/layouts/AdminLayout'
 import { PublicLayout } from '@/app/layouts/PublicLayout'
 import { ResidentLayout } from '@/app/layouts/ResidentLayout'
 import { PlaceholderPage } from '@/components/PlaceholderPage'
+import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
+import { SetPassword } from '@/features/auth/SetPassword'
 import { NotFound } from '@/features/NotFound'
 import { Contact } from '@/features/public/Contact'
 import { Home } from '@/features/public/Home'
@@ -30,7 +32,9 @@ export const routes: RouteObject[] = [
       { path: '/iletisim', element: <Contact /> },
       { path: '/kvkk', element: <Kvkk /> },
       { path: '/giris', element: <Login /> },
-      { path: '/auth/onay', element: page('Hesap Onayı') },
+      { path: '/sifremi-unuttum', element: <ForgotPassword /> },
+      { path: '/sifre-yenile', element: <SetPassword mode="recovery" /> },
+      { path: '/auth/onay', element: <SetPassword mode="invite" /> },
     ],
   },
   {

@@ -12,6 +12,7 @@ import {
 import { NavLink, Outlet } from 'react-router'
 import { BrandLogo } from '@/components/BrandLogo'
 import { SidebarNav, type NavGroup, type NavItem } from '@/components/nav/SidebarNav'
+import { SignedInAs } from '@/components/SignedInAs'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -64,6 +65,7 @@ export function ResidentLayout() {
             </Badge>
           )}
           <div className="ml-auto flex items-center gap-1">
+            <SignedInAs />
             <ThemeToggle />
             <Button variant="ghost" onClick={() => void signOut()}>
               <LogOut /> Çıkış

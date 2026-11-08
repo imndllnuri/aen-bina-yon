@@ -79,14 +79,36 @@ alone, but the generated local defaults would turn hosted MFA and e-mail protect
   values ('<user-uuid>', '00000000-0000-0000-0000-000000000010', 'admin');
   ```
 
-### Auth e-mails (free plan)
+### Login, invites and password reset
 
-Supabase refuses custom e-mail templates on the free plan while the built-in e-mail provider is
-used, and the built-in provider is limited to 2 e-mails per hour. So `supabase/templates/*.html` are
-**not pushed yet**. The Supabase default links put the session tokens in the URL hash
-(`#access_token=...`), which collides with hash routes (`/#/...`). The login slice must read those
-tokens before the router starts. When a custom SMTP provider is added, un-comment the two template
-blocks in `config.toml`, run `config diff`, then `config push`.
+Pages: `/#/giris` (login, "Beni hatırla"), `/#/sifremi-unuttum`, `/#/sifre-yenile` (reset),
+`/#/auth/onay` (accept an invite). Closed signups: accounts only come from invites.
+
+**How the e-mail links work.** Supabase links end in `<site>/#access_token=...&type=invite`. Our
+router also uses the hash, so `main.tsx` first runs `handleAuthRedirect()`
+(`src/lib/auth-redirect.ts`): it reads the tokens, removes them from the address bar **before
+anything else**, saves the session, then opens the right page. `supabase-js` is told not to read
+the URL itself (`detectSessionInUrl: false`). The router is created only after that
+(`createAppRouter()` in `src/app/router.tsx`).
+
+**Free plan limits (important).** The built-in Supabase e-mail service only sends to the e-mail
+addresses of the members of your Supabase organization (other addresses fail with
+`email_address_not_authorized`) and sends at most 2 e-mails per hour. Custom templates are refused
+too, so `supabase/templates/*.html` are **not pushed**. **Before real residents are invited, set up
+custom SMTP** (Authentication → SMTP settings). Then un-comment the two template blocks in
+`config.toml`, run `config diff`, and `config push`.
+
+**Testing links without sending e-mail** (local stack): create a link with the admin API, then open
+it in a browser. Always pass `redirect_to`, otherwise Supabase uses the production site URL:
+
+```bash
+curl -s -X POST http://127.0.0.1:54321/auth/v1/admin/generate_link \
+  -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"invite","email":"x@test.local","redirect_to":"http://localhost:5173/aen-bina-yon/"}'
+```
+
+Only `http://localhost:5173/**` and the Pages URL are allowed as redirect addresses.
 
 ## Where things are
 

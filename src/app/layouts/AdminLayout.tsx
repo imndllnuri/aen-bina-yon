@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router'
 import { BrandLogo } from '@/components/BrandLogo'
 import { SidebarNav, type NavGroup } from '@/components/nav/SidebarNav'
+import { SignedInAs } from '@/components/SignedInAs'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -86,6 +87,7 @@ export function AdminLayout() {
             </Badge>
           )}
           <div className="ml-auto flex items-center gap-1">
+            <SignedInAs />
             <ThemeToggle />
             <Button variant="ghost" onClick={() => void signOut()}>
               <LogOut /> Çıkış
