@@ -24,16 +24,27 @@ export type LoginValues = z.infer<typeof loginSchema>
 export const forgotSchema = z.object({ email: emailField })
 export type ForgotValues = z.infer<typeof forgotSchema>
 
-export const newPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(MIN_PASSWORD_LENGTH, `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.`)
-      .refine((value) => new TextEncoder().encode(value).length <= MAX_PASSWORD_BYTES, 'Şifre çok uzun. Daha kısa bir şifre seçin.'),
-    confirm: z.string(),
-  })
-  .refine((values) => values.password === values.confirm, {
-    path: ['confirm'],
-    message: 'Şifreler aynı değil.',
-  })
+/**
+ * New password + repeat. For the invite page, `requireConsent` also demands the KVKK tick
+ * (the tick is optional in the data so the same form type serves both pages).
+ */
+export function passwordFormSchema(requireConsent: boolean) {
+  return z
+    .object({
+      password: z
+        .string()
+        .min(MIN_PASSWORD_LENGTH, `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.`)
+        .refine((value) => new TextEncoder().encode(value).length <= MAX_PASSWORD_BYTES, 'Şifre çok uzun. Daha kısa bir şifre seçin.'),
+      confirm: z.string(),
+      kvkk: z.boolean().optional(),
+    })
+    .refine((values) => values.password === values.confirm, { path: ['confirm'], message: 'Şifreler aynı değil.' })
+    .refine((values) => !requireConsent || values.kvkk === true, {
+      path: ['kvkk'],
+      message: 'Devam etmek için aydınlatma metnini okuduğunuzu onaylayın.',
+    })
+}
+
+export const newPasswordSchema = passwordFormSchema(false)
+export const invitePasswordSchema = passwordFormSchema(true)
 export type NewPasswordValues = z.infer<typeof newPasswordSchema>

@@ -23,7 +23,7 @@ export function renderRoutes(routes: RouteObject[], options: { path: string; aut
 
 export const anonymousState: AuthState = { status: 'anonymous', session: null, roles: [] }
 
-/** A signed-in state with the given roles. The session is a stub: tests only read the e-mail. */
-export function signedInState(roles: ('admin' | 'resident')[], email = 'kisi@ornek.com'): AuthState {
-  return { status: 'signed-in', session: { user: { email } } as never, roles }
+/** A signed-in state with the given roles. The session is a stub: tests only read the id and e-mail. */
+export function signedInState(roles: ('admin' | 'resident')[], email = 'kisi@ornek.com', active = true): AuthState {
+  return { status: 'signed-in', session: { user: { id: 'user-1', email } } as never, roles, active }
 }

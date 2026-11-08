@@ -12,15 +12,17 @@ export type AuthState =
   | { status: 'unconfigured'; session: null; roles: [] }
   /** Backend is connected but nobody is logged in. */
   | { status: 'anonymous'; session: null; roles: [] }
-  | { status: 'signed-in'; session: Session; roles: Role[] }
+  /** `active` is false for a deactivated person: they keep their login but have no roles at all. */
+  | { status: 'signed-in'; session: Session; roles: Role[]; active: boolean }
 
 export const AUTH_QUERY_KEY = ['auth'] as const
 
 /**
  * Reads the session, then loads the user's memberships once:
  *  - a row in site_members with role "admin"  -> admin
- *  - a current row in unit_residents          -> resident
+ *  - a current row in unit_residents          -> resident (end_date = the day they moved out)
  * Row Level Security makes sure a user only ever sees their own rows.
+ * A deactivated person (profiles.is_active = false) gets no roles.
  */
 export async function loadAuthState(): Promise<AuthState> {
   if (!supabase) return { status: 'unconfigured', session: null, roles: [] }
@@ -30,26 +32,42 @@ export async function loadAuthState(): Promise<AuthState> {
 
   const userId = data.session.user.id
   const today = todayIstanbul()
-  const [members, residents] = await Promise.all([
+  const [members, residents, profile] = await Promise.all([
     supabase.from('site_members').select('role').eq('profile_id', userId),
     supabase
       .from('unit_residents')
       .select('relation')
       .eq('profile_id', userId)
       .lte('start_date', today)
-      .or(`end_date.is.null,end_date.gte.${today}`),
+      .or(`end_date.is.null,end_date.gt.${today}`),
+    supabase.from('profiles').select('is_active').eq('id', userId).maybeSingle(),
   ])
   if (members.error) throw members.error
   if (residents.error) throw residents.error
+  if (profile.error) throw profile.error
+
+  // A deactivated person still has rows in site_members / unit_residents, but every database rule
+  // already refuses them. Show "account deactivated" instead of empty panels.
+  if (profile.data && !profile.data.is_active) {
+    return { status: 'signed-in', session: data.session, roles: [], active: false }
+  }
 
   const roles: Role[] = []
   if (members.data.some((row) => row.role === 'admin')) roles.push('admin')
   if (residents.data.length > 0) roles.push('resident')
-  return { status: 'signed-in', session: data.session, roles }
+  return { status: 'signed-in', session: data.session, roles, active: true }
 }
 
 export function useAuthState() {
-  return useQuery({ queryKey: AUTH_QUERY_KEY, queryFn: loadAuthState, staleTime: Infinity })
+  return useQuery({
+    queryKey: AUTH_QUERY_KEY,
+    queryFn: loadAuthState,
+    staleTime: Infinity,
+    // Check again whenever the person comes back to this tab. Without it, someone who was
+    // deactivated (or reactivated) while the page was open would keep the old screen until they
+    // reload. The database already refuses their data; this makes the screen tell the truth too.
+    refetchOnWindowFocus: 'always',
+  })
 }
 
 /** Where a signed-in person should land: admin panel first, then resident panel. */

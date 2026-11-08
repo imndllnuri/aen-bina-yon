@@ -26,4 +26,10 @@ if (!('ResizeObserver' in globalThis)) {
   }
 }
 
+// jsdom has no pointer-capture or scrollIntoView. Radix menus and selects call them.
+Element.prototype.hasPointerCapture ??= () => false
+Element.prototype.setPointerCapture ??= () => {}
+Element.prototype.releasePointerCapture ??= () => {}
+Element.prototype.scrollIntoView ??= () => {}
+
 afterEach(() => cleanup())

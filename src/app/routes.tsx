@@ -6,6 +6,8 @@ import { PlaceholderPage } from '@/components/PlaceholderPage'
 import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
 import { SetPassword } from '@/features/auth/SetPassword'
+import { ResidentsPage } from '@/features/admin/ResidentsPage'
+import { UnitsPage } from '@/features/admin/UnitsPage'
 import { NotFound } from '@/features/NotFound'
 import { Contact } from '@/features/public/Contact'
 import { Home } from '@/features/public/Home'
@@ -63,8 +65,8 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: page('Genel Bakış') },
-      { path: 'daireler', element: page('Daireler') },
-      { path: 'sakinler', element: page('Sakinler') },
+      { path: 'daireler', element: <UnitsPage /> },
+      { path: 'sakinler', element: <ResidentsPage /> },
       { path: 'borclandirma', element: page('Borçlandırma') },
       { path: 'tahsilatlar', element: page('Tahsilatlar') },
       { path: 'havale-onaylari', element: page('Havale Onayları') },

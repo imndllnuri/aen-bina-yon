@@ -8,7 +8,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(59);
+select plan(60);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -29,9 +29,12 @@ end; $$;
 select is((select count(*)::int from pg_tables where schemaname = 'public' and not rowsecurity), 0,
   'every table in public has RLS enabled');
 
-select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-           where n.nspname = 'public'), 0,
-  'no functions in public (they would be callable through /rest/v1/rpc). Update this test if you add one on purpose');
+-- Every function in public can be called through /rest/v1/rpc. So the list is fixed:
+-- add a name here ONLY when a migration adds a public function on purpose (and checks the caller inside).
+select is((select coalesce(array_agg(p.proname::text order by p.proname), array[]::text[]) from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'),
+  array['accept_kvkk', 'set_profile_active'],
+  'public holds exactly the expected functions (0002 added accept_kvkk and set_profile_active)');
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (inserted as postgres, which bypasses RLS)
@@ -231,7 +234,14 @@ update public.unit_residents
       end_date   = (now() at time zone 'Europe/Istanbul')::date
   where id = '50000000-0000-0000-0000-000000000003';
 select pg_temp.act_as('b3000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from public.units), 1, 'a residency that ends today still gives access');
+select is((select count(*)::int from public.units), 0, 'a residency that ends today (moved out today) gives no access from now on');
+
+reset role;
+update public.unit_residents
+  set end_date = (now() at time zone 'Europe/Istanbul')::date + 1
+  where id = '50000000-0000-0000-0000-000000000003';
+select pg_temp.act_as('b3000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.units), 1, 'a residency that ends tomorrow still gives access today');
 
 reset role;
 update public.unit_residents

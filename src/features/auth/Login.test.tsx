@@ -168,6 +168,17 @@ describe('Login page', () => {
     await waitFor(() => expect(queryClient.getQueryData(AUTH_QUERY_KEY)).toMatchObject({ status: 'anonymous' }))
   })
 
+  it('says clearly when the account was deactivated (not "not linked yet")', async () => {
+    const user = userEvent.setup()
+    const { router } = renderRoutes(routes, { path: '/giris', authState: signedInState([], 'eski@ornek.com', false) })
+    expect(await screen.findByText('Hesabınız devre dışı')).toBeInTheDocument()
+    expect(screen.getByText('eski@ornek.com')).toBeInTheDocument()
+    expect(screen.queryByText('Hesabınız henüz bağlanmamış')).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/giris')
+    await user.click(screen.getByRole('button', { name: 'Çıkış yap' }))
+    expect(mocks.auth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+  })
+
   it('shows a "try again" card (and no redirect) when the roles cannot be loaded', async () => {
     mocks.auth.getSession.mockRejectedValue(new Error('network'))
     const { router } = renderRoutes(routes, { path: '/giris' }) // nothing cached: it has to load

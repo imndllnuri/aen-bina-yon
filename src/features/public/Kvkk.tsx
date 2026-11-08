@@ -1,4 +1,5 @@
 import { TriangleAlert } from 'lucide-react'
+import { KVKK_VERSION } from '@/config/kvkk'
 import { site } from '@/config/site'
 
 /**
@@ -9,6 +10,7 @@ export function Kvkk() {
   return (
     <article className="mx-auto max-w-3xl px-4 py-12 sm:py-16">
       <h1 className="text-2xl font-bold sm:text-3xl">KVKK Aydınlatma Metni</h1>
+      <p className="mt-1 text-xs text-muted-foreground">Sürüm: {KVKK_VERSION}</p>
 
       <p
         role="note"

@@ -79,6 +79,20 @@ export function Login() {
   }
 
   if (auth.data.status === 'signed-in') {
+    // A deactivated person: say so clearly (not "not linked yet").
+    if (!auth.data.active) {
+      return (
+        <AuthShell icon={LockKeyhole} title="Hesabınız devre dışı">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">{auth.data.session.user.email}</strong> hesabı devre dışı bırakılmış. Bilgi için
+            lütfen yönetimle iletişime geçin.
+          </p>
+          <Button variant="outline" onClick={() => void signOut()}>
+            Çıkış yap
+          </Button>
+        </AuthShell>
+      )
+    }
     if (auth.data.roles.length > 0) return <Navigate to={homePathFor(auth.data.roles)} replace />
     // Signed in, but not linked to any site or unit yet.
     return (

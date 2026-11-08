@@ -38,6 +38,8 @@ use the **local** database unless you add `--remote`.
 | File | What |
 |---|---|
 | `supabase/migrations/0001_core.sql` | companies, sites, blocks, units, profiles, site_members, unit_residents, quote_requests, helper functions, RLS |
+| `supabase/migrations/0002_residents.sql` | `accept_kvkk()`, `set_profile_active()`, guard against archiving occupied units, "end date = day moved out" |
+| `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
 | `supabase/templates/` | Invite and password-reset e-mails (Turkish) |
@@ -49,6 +51,7 @@ Work on a local copy (needs Docker, no login needed):
 npx supabase start --exclude studio,logflare,vector,edge-runtime,imgproxy,mailpit,realtime,supavisor,postgres-meta
 npx supabase db reset      # apply all migrations + seed.sql
 npx supabase test db       # run the pgTAP tests
+npm run test:functions     # call the real invite function with real logins (needs the stack running)
 npx supabase stop
 ```
 
@@ -58,6 +61,7 @@ Send it to the hosted project (needs `npx supabase login` once, then `link`):
 npx supabase link --project-ref <ref>
 npx supabase config diff                     # READ this first: it shows what would change online
 npx supabase db push --remote --dry-run      # then without --dry-run
+npx supabase functions deploy invite-resident
 npx supabase gen types --remote > src/lib/database.types.ts
 ```
 
@@ -78,6 +82,26 @@ alone, but the generated local defaults would turn hosted MFA and e-mail protect
   insert into public.site_members (profile_id, site_id, role)
   values ('<user-uuid>', '00000000-0000-0000-0000-000000000010', 'admin');
   ```
+
+### Units, residents and invites (slice 3)
+
+Admin pages: `/#/yonetim/daireler` (blocks, units, bulk generator "A Blok, 10 kat, katta 4 daire")
+and `/#/yonetim/sakinler` (residents, invites, status, moved out, deactivate).
+
+- **Invites without e-mail.** An admin adds a resident and the server function returns a one-time
+  link to copy or send by WhatsApp. Reason: the free Supabase e-mail service only sends to your
+  own organization members. When a custom SMTP service exists, the link can also be e-mailed.
+- **Who may get a link.** The function runs with the secret key (it bypasses Row Level Security),
+  so it checks everything itself (`supabase/functions/invite-resident/logic.ts`, 38 unit tests, and
+  `npm run test:functions` with 33 checks against the real function). A link is only ever returned
+  for a plain resident who has **not finished the invite page**. People who finished (or are admins,
+  staff, deactivated, or yourself) never get one: a link is a way to sign in as that person.
+- **"Davet bekliyor" / "Aktif".** The invite page records the KVKK consent as its last step
+  (`accept_kvkk()`), so "consent recorded" means "invite page finished".
+- **Residency dates.** `end_date` is the day the person **moved out**: from that day on they no
+  longer live there. "Taşındı" with today's date therefore takes effect immediately.
+- **Deactivated people** keep their history but see nothing. Open tabs notice this when the person
+  comes back to the tab (the account is re-checked on focus).
 
 ### Login, invites and password reset
 

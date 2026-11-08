@@ -13,7 +13,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'], // Playwright tests (e2e/) run separately
+    // Playwright tests (e2e/) run separately. The Edge Function logic is plain TypeScript and is tested here.
+    include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/*.test.ts'],
     css: false,
   },
 })

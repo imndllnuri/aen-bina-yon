@@ -109,3 +109,17 @@ export async function updatePassword(password: string): Promise<AuthResult> {
     return { ok: false, reason: 'failed' }
   }
 }
+
+/**
+ * Records that the signed-in person accepted this version of the KVKK notice.
+ * The database function only ever writes the CALLER's own profile.
+ */
+export async function acceptKvkk(version: string): Promise<AuthResult> {
+  if (!supabase) return { ok: false, reason: 'not-configured' }
+  try {
+    const { error } = await supabase.rpc('accept_kvkk', { p_version: version })
+    return error ? { ok: false, reason: classifyAuthError(error) } : { ok: true }
+  } catch {
+    return { ok: false, reason: 'failed' }
+  }
+}
