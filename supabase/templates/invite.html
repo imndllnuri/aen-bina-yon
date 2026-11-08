@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="tr">
+  <body style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; line-height: 1.5;">
+    <h2 style="color: #0f766e;">Davetiniz var</h2>
+    <p>Bina Yönetimi portalında sizin için bir hesap açıldı.</p>
+    <p>Şifrenizi belirlemek ve giriş yapmak için aşağıdaki bağlantıya tıklayın:</p>
+    <p>
+      <a
+        href="{{ .SiteURL }}/#/auth/onay?token_hash={{ .TokenHash }}&amp;type=invite"
+        style="display: inline-block; background: #0f766e; color: #ffffff; padding: 10px 18px; border-radius: 8px; text-decoration: none;"
+        >Şifremi belirle</a
+      >
+    </p>
+    <p style="font-size: 13px; color: #475569;">
+      Bu daveti beklemiyorsanız bu e-postayı yok sayabilirsiniz.
+    </p>
+  </body>
+</html>

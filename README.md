@@ -29,6 +29,41 @@ npm run preview    # http://localhost:4173/aen-bina-yon/
 The public site works without a backend. For login and data, copy `.env.example` to
 `.env.local` and fill in the Supabase values.
 
+## Database (Supabase)
+
+The database is described by SQL files in `supabase/migrations/` (the database can be rebuilt from
+Git). Supabase CLI **v3** is used through `npx supabase`. Note: in v3, `db push` and `gen types`
+use the **local** database unless you add `--remote`.
+
+| File | What |
+|---|---|
+| `supabase/migrations/0001_core.sql` | companies, sites, blocks, units, profiles, site_members, unit_residents, quote_requests, helper functions, RLS |
+| `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
+| `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
+| `supabase/templates/` | Invite and password-reset e-mails (Turkish) |
+| `supabase/config.toml` | Auth settings. **Production values**: signups off, Pages URL |
+
+Work on a local copy (needs Docker, no login needed):
+
+```bash
+npx supabase start --exclude studio,logflare,vector,edge-runtime,imgproxy,mailpit,realtime,supavisor,postgres-meta
+npx supabase db reset      # apply all migrations + seed.sql
+npx supabase test db       # run the pgTAP tests
+npx supabase stop
+```
+
+Send it to the hosted project (needs `npx supabase login` once, then `link`):
+
+```bash
+npx supabase link --project-ref <ref>
+npx supabase config diff                     # READ this first: it shows what would change online
+npx supabase db push --remote --dry-run      # then without --dry-run
+npx supabase gen types --remote > src/lib/database.types.ts
+```
+
+Rules for new migrations: enable RLS in the same file, write explicit `grant` lines, put helper
+functions in the `private` schema, and add a test.
+
 ## Where things are
 
 | Path | What |

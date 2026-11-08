@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="tr">
+  <body style="font-family: Arial, Helvetica, sans-serif; color: #0f172a; line-height: 1.5;">
+    <h2 style="color: #0f766e;">Şifre yenileme</h2>
+    <p>Hesabınız için bir şifre yenileme isteği aldık.</p>
+    <p>Yeni şifre belirlemek için aşağıdaki bağlantıya tıklayın:</p>
+    <p>
+      <a
+        href="{{ .SiteURL }}/#/auth/onay?token_hash={{ .TokenHash }}&amp;type=recovery"
+        style="display: inline-block; background: #0f766e; color: #ffffff; padding: 10px 18px; border-radius: 8px; text-decoration: none;"
+        >Şifremi yenile</a
+      >
+    </p>
+    <p style="font-size: 13px; color: #475569;">
+      Bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz; şifreniz değişmeyecektir.
+    </p>
+  </body>
+</html>
