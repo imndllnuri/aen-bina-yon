@@ -48,8 +48,10 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('b3000000-0000-0000-0000-000000000003', 'owner2@test.local',   '{"full_name":"Malik Iki"}'),
   ('c1000000-0000-0000-0000-000000000001', 'stranger@test.local', '{}');
 
-select is((select count(*)::int from public.profiles where email like '%@test.local'), 6,
-  'trigger creates a profile for every new auth user');
+select is((select count(*)::int from public.profiles where id in (
+  'a1000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000001',
+  'b2000000-0000-0000-0000-000000000002', 'b3000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000001')), 6,
+  'trigger creates a profile for every new auth user (only this test''s own users are counted)');
 select is((select full_name from public.profiles where id = 'a1000000-0000-0000-0000-000000000001'), 'Admin Bir',
   'full_name is copied from the user metadata');
 
