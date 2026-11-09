@@ -39,6 +39,7 @@ use the **local** database unless you add `--remote`.
 |---|---|
 | `supabase/migrations/0001_core.sql` | companies, sites, blocks, units, profiles, site_members, unit_residents, quote_requests, helper functions, RLS |
 | `supabase/migrations/0002_residents.sql` | `accept_kvkk()`, `set_profile_active()`, guard against archiving occupied units, "end date = day moved out" |
+| `supabase/migrations/0003_charges.sql` | charge types, monthly plans, charge batches, charges, the split function and the charge RPCs (see "Charges" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -102,6 +103,37 @@ and `/#/yonetim/sakinler` (residents, invites, status, moved out, deactivate).
   longer live there. "Taşındı" with today's date therefore takes effect immediately.
 - **Deactivated people** keep their history but see nothing. Open tabs notice this when the person
   comes back to the tab (the account is re-checked on focus).
+
+### Charges: Borçlandırma (slice 4)
+
+Admin page: `/#/yonetim/borclandirma` with three tabs: **Borçlar** (the lines, with filters, totals,
+edit, cancel), **Toplu işlemler** (every bulk or single operation: undo, delete a fresh mistake) and
+**Aylık planlar** ("Bu ayı oluştur"). Buttons: **Toplu borçlandır** (4-step wizard with a preview)
+and **Tek borç ekle**.
+
+- **The database does all the money maths.** The browser sends "how much" and "how to split";
+  `private.split_charge()` splits it. The preview and the real creation call the **same** function,
+  so what the admin sees is what is saved, to the kuruş. Amounts travel as whole kuruş (no floats).
+- **Split methods:** `per_unit` (every unit pays the amount), `equal`, `land_share` (arsa payı) and
+  `gross_m2` (the amount is a total to share). Rounding is largest remainder: 10.000 TL by arsa payı
+  over 16 units leaves 8 kuruş, which go to the 8 units with the biggest remainder, so the lines
+  always add up to the total. Ties go in block / door order (2 before 10).
+- **Nobody writes charges directly.** `charges`, `charge_batches` and `recurring_plans` have no insert
+  or delete grant. Admins call functions that check who is calling: `preview_charge_batch`,
+  `create_charge_batch`, `void_charge`, `void_charge_batch`, `delete_charge_batch` (only in the first
+  15 minutes), `save_recurring_plan`, `set_recurring_plan_active`, `generate_recurring_batch`.
+  Only amount, due date, description and tenant visibility can be edited, and a cancelled line is frozen.
+- **No double charge.** Each confirm screen sends a request id; the same id returns the same batch.
+  The id changes when anything in the request changes. "Bu ayı oluştur" twice for the same plan and
+  month is refused (unique index). "This month" is the Istanbul month.
+- **Aidat increase rule (KMK m. 37).** Editing a plan so that the amount **per unit** rises by more than
+  the YDO (default 25,49 %, `companies.settings.ydo_rate`) needs a kurul karar number and date. Exactly at
+  the limit is allowed. Changing the split method cannot get around it.
+- **Not yet (on purpose):** residents cannot see charges (slice 5, with owner / tenant rules), payments
+  and "Ödendi / Kısmi" status (slice 6), notifications (slice 8), audit log (slice 10), **automatic late
+  fees** (they need payment data; `Gecikme Tazminatı` exists only as a charge type). When payments
+  arrive, slice 6 must also stop amount edits, voiding and archiving for lines that have payments
+  (marked in the SQL comments).
 
 ### Login, invites and password reset
 

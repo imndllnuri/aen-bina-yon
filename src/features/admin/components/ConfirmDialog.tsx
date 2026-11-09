@@ -16,6 +16,7 @@ export function ConfirmDialog({
   confirmLabel,
   destructive = false,
   onConfirm,
+  describeError = describeDbError,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -24,6 +25,8 @@ export function ConfirmDialog({
   confirmLabel: string
   destructive?: boolean
   onConfirm: () => Promise<void>
+  /** Turns what the action threw into a sentence for the person. */
+  describeError?: (error: unknown) => string
 }) {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +38,7 @@ export function ConfirmDialog({
       await onConfirm()
       onOpenChange(false)
     } catch (caught) {
-      setError(describeDbError(caught))
+      setError(describeError(caught))
     } finally {
       setPending(false)
     }

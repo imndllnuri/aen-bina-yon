@@ -6,6 +6,7 @@ import { PlaceholderPage } from '@/components/PlaceholderPage'
 import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
 import { SetPassword } from '@/features/auth/SetPassword'
+import { BorclandirmaPage } from '@/features/admin/BorclandirmaPage'
 import { ResidentsPage } from '@/features/admin/ResidentsPage'
 import { UnitsPage } from '@/features/admin/UnitsPage'
 import { NotFound } from '@/features/NotFound'
@@ -67,7 +68,7 @@ export const routes: RouteObject[] = [
       { index: true, element: page('Genel Bakış') },
       { path: 'daireler', element: <UnitsPage /> },
       { path: 'sakinler', element: <ResidentsPage /> },
-      { path: 'borclandirma', element: page('Borçlandırma') },
+      { path: 'borclandirma', element: <BorclandirmaPage /> },
       { path: 'tahsilatlar', element: page('Tahsilatlar') },
       { path: 'havale-onaylari', element: page('Havale Onayları') },
       { path: 'duyurular', element: page('Duyurular') },

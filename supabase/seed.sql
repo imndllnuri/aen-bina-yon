@@ -31,5 +31,6 @@ cross join generate_series(1, 8) as n
 where b.site_id = '00000000-0000-0000-0000-000000000010'
 on conflict do nothing;
 
--- Charge types (Aidat, Yakıt, Demirbaş, Ek Toplama, Gecikme Tazminatı, Devir) arrive with the
--- finance migration. Demo residents need real auth users and are created in the dashboard.
+-- Charge types (Aidat, Yakıt, Demirbaş, Ek Toplama, Gecikme Tazminatı, Devir Bakiyesi) are NOT
+-- seeded here: migration 0003 creates them for every company (a trigger covers new companies), so
+-- the hosted project gets them too. Demo residents need real auth users and are created in the dashboard.

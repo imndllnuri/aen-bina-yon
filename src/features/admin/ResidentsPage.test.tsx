@@ -41,7 +41,7 @@ const past = row({ residencyId: 'r4', profileId: 'p4', fullName: 'Eski Sakin', e
 
 beforeEach(() => {
   for (const fn of Object.values(api)) fn.mockReset()
-  api.fetchAdminSites.mockResolvedValue([{ id: 's1', name: 'Demo Sitesi' }])
+  api.fetchAdminSites.mockResolvedValue([{ id: 's1', name: 'Demo Sitesi', companyId: 'c1' }])
   api.fetchBlocks.mockResolvedValue([block])
   api.fetchUnits.mockResolvedValue(units)
   api.fetchResidents.mockResolvedValue([active, pending, inactive, past])

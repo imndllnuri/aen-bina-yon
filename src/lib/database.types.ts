@@ -43,6 +43,120 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"charge_batches": {
+                  Row: {
+                    "amount": number,"charge_type_id": string,"created_at": string,"created_by": string | null,"description": string | null,"due_date": string,"id": string,"karar_date": string | null,"karar_no": string | null,"period": string | null,"recurring_plan_id": string | null,"request_id": string | null,"site_id": string,"split_method": string,"target": NonNullable<Json>,"tenant_visible": boolean,"total": number,"unit_count": number,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"charge_type_id": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date": string,"id"?: string,"karar_date"?: string | null,"karar_no"?: string | null,"period"?: string | null,"recurring_plan_id"?: string | null,"request_id"?: string | null,"site_id": string,"split_method": string,"target": NonNullable<Json>,"tenant_visible": boolean,"total": number,"unit_count": number,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"charge_type_id"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date"?: string,"id"?: string,"karar_date"?: string | null,"karar_no"?: string | null,"period"?: string | null,"recurring_plan_id"?: string | null,"request_id"?: string | null,"site_id"?: string,"split_method"?: string,"target"?: NonNullable<Json>,"tenant_visible"?: boolean,"total"?: number,"unit_count"?: number,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "charge_batches_charge_type_id_fkey"
+      columns: ["charge_type_id"]
+isOneToOne: false
+      referencedRelation: "charge_types"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charge_batches_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charge_batches_recurring_plan_id_fkey"
+      columns: ["recurring_plan_id"]
+isOneToOne: false
+      referencedRelation: "recurring_plans"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charge_batches_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charge_batches_voided_by_fkey"
+      columns: ["voided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"charge_types": {
+                  Row: {
+                    "active": boolean,"code": string,"company_id": string,"created_at": string,"default_split": string,"id": string,"name": string,"sort_order": number,"tenant_visible_default": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"code": string,"company_id": string,"created_at"?: string,"default_split"?: string,"id"?: string,"name": string,"sort_order"?: number,"tenant_visible_default"?: boolean
+                  }
+                  Update: {
+                    "active"?: boolean,"code"?: string,"company_id"?: string,"created_at"?: string,"default_split"?: string,"id"?: string,"name"?: string,"sort_order"?: number,"tenant_visible_default"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "charge_types_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"charges": {
+                  Row: {
+                    "amount": number,"batch_id": string,"charge_type_id": string,"created_at": string,"created_by": string | null,"description": string | null,"due_date": string,"id": string,"period": string | null,"tenant_visible": boolean,"unit_id": string,"updated_at": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"batch_id": string,"charge_type_id": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date": string,"id"?: string,"period"?: string | null,"tenant_visible": boolean,"unit_id": string,"updated_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"batch_id"?: string,"charge_type_id"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date"?: string,"id"?: string,"period"?: string | null,"tenant_visible"?: boolean,"unit_id"?: string,"updated_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "charges_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "charge_batch_summary"
+      referencedColumns: ["batch_id"]
+    },{
+      foreignKeyName: "charges_batch_id_fkey"
+      columns: ["batch_id"]
+isOneToOne: false
+      referencedRelation: "charge_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_charge_type_id_fkey"
+      columns: ["charge_type_id"]
+isOneToOne: false
+      referencedRelation: "charge_types"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_voided_by_fkey"
+      columns: ["voided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"companies": {
                   Row: {
                     "address": string | null,"created_at": string,"email": string | null,"id": string,"logo_url": string | null,"name": string,"phone": string | null,"settings": NonNullable<Json>,"tax_no": string | null,"updated_at": string
@@ -84,6 +198,38 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"recurring_plans": {
+                  Row: {
+                    "active": boolean,"amount": number,"charge_type_id": string,"created_at": string,"created_by": string | null,"day_of_month": number,"description": string | null,"id": string,"karar_date": string | null,"karar_no": string | null,"name": string,"site_id": string,"split_method": string,"target": NonNullable<Json>,"tenant_visible": boolean,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active"?: boolean,"amount": number,"charge_type_id": string,"created_at"?: string,"created_by"?: string | null,"day_of_month": number,"description"?: string | null,"id"?: string,"karar_date"?: string | null,"karar_no"?: string | null,"name": string,"site_id": string,"split_method": string,"target": NonNullable<Json>,"tenant_visible"?: boolean,"updated_at"?: string
+                  }
+                  Update: {
+                    "active"?: boolean,"amount"?: number,"charge_type_id"?: string,"created_at"?: string,"created_by"?: string | null,"day_of_month"?: number,"description"?: string | null,"id"?: string,"karar_date"?: string | null,"karar_no"?: string | null,"name"?: string,"site_id"?: string,"split_method"?: string,"target"?: NonNullable<Json>,"tenant_visible"?: boolean,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recurring_plans_charge_type_id_fkey"
+      columns: ["charge_type_id"]
+isOneToOne: false
+      referencedRelation: "charge_types"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recurring_plans_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recurring_plans_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"site_members": {
                   Row: {
@@ -180,14 +326,54 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "charge_batch_summary": {
+                  Row: {
+                    "active_count": number | null,"active_total": number | null,"batch_id": string,"site_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "charge_batches_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
           }
           Functions: {
             "accept_kvkk":
 { Args: { "p_version": string }; Returns: undefined
                            },
+"create_charge_batch":
+{ Args: { "p_amount_kurus": number,"p_charge_type": string,"p_description": string,"p_due_date": string,"p_expected_kurus": number,"p_expected_units": number,"p_karar_date": string,"p_karar_no": string,"p_period": string,"p_request_id": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
+                           },
+"delete_charge_batch":
+{ Args: { "p_batch": string }; Returns: undefined
+                           },
+"generate_recurring_batch":
+{ Args: { "p_plan": string }; Returns: string
+                           },
+"preview_charge_batch":
+{ Args: { "p_amount_kurus": number,"p_site": string,"p_split": string,"p_target": Json }; Returns: {
+              "amount_kurus": number,"block_name": string,"door_no": string,"unit_id": string,"weight": number
+            }[]
+                           },
+"save_recurring_plan":
+{ Args: { "p_amount_kurus": number,"p_charge_type": string,"p_day": number,"p_description": string,"p_id": string,"p_karar_date": string,"p_karar_no": string,"p_name": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
+                           },
 "set_profile_active":
 { Args: { "p_active": boolean,"p_profile": string }; Returns: undefined
+                           },
+"set_recurring_plan_active":
+{ Args: { "p_active": boolean,"p_plan": string }; Returns: undefined
+                           },
+"void_charge":
+{ Args: { "p_charge": string,"p_reason": string }; Returns: undefined
+                           },
+"void_charge_batch":
+{ Args: { "p_batch": string,"p_reason": string }; Returns: undefined
                            }
           }
           Enums: {

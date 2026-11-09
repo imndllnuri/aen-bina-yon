@@ -31,7 +31,7 @@ const moved = { ...live, id: 'r2', relation: 'tenant' as const, endDate: '2021-0
 
 beforeEach(() => {
   for (const fn of Object.values(api)) fn.mockReset()
-  api.fetchAdminSites.mockResolvedValue([{ id: 's1', name: 'Demo Sitesi' }])
+  api.fetchAdminSites.mockResolvedValue([{ id: 's1', name: 'Demo Sitesi', companyId: 'c1' }])
   api.fetchBlocks.mockResolvedValue([blockA, blockB])
   api.fetchUnits.mockResolvedValue([
     unit({ id: 'u1', doorNo: '1', residencies: [live, moved] }),
@@ -154,6 +154,17 @@ describe('Daireler page', () => {
     await user.click(screen.getByRole('button', { name: 'A Blok 2 numaralı daireyi arşivle' }))
     await user.click(await screen.findByRole('button', { name: 'Arşivle' }))
     expect(await screen.findByText(/güncel sakinlere sahip/)).toBeInTheDocument()
+  })
+
+  it('explains that a unit with charges cannot be archived (the ledger must stay whole)', async () => {
+    api.archiveUnit.mockRejectedValue({ message: 'unit has charges', code: '23514' })
+    const user = userEvent.setup()
+    open()
+    await screen.findByRole('region', { name: /A Blok/ })
+    await user.click(screen.getByRole('button', { name: 'A Blok 2 numaralı daireyi arşivle' }))
+    await user.click(await screen.findByRole('button', { name: 'Arşivle' }))
+    expect(await screen.findByText(/Bu dairenin borç kaydı var, arşivlenemez/)).toBeInTheDocument()
+    expect(screen.queryByText(/güncel sakinlere sahip/)).not.toBeInTheDocument()
   })
 
   it('only lets an EMPTY block be deleted', async () => {

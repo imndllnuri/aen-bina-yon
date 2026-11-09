@@ -33,8 +33,10 @@ select is((select count(*)::int from pg_tables where schemaname = 'public' and n
 -- add a name here ONLY when a migration adds a public function on purpose (and checks the caller inside).
 select is((select coalesce(array_agg(p.proname::text order by p.proname), array[]::text[]) from pg_proc p
            join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'),
-  array['accept_kvkk', 'set_profile_active'],
-  'public holds exactly the expected functions (0002 added accept_kvkk and set_profile_active)');
+  array['accept_kvkk', 'create_charge_batch', 'delete_charge_batch', 'generate_recurring_batch',
+        'preview_charge_batch', 'save_recurring_plan', 'set_profile_active', 'set_recurring_plan_active',
+        'void_charge', 'void_charge_batch'],
+  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: the charge functions)');
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (inserted as postgres, which bypasses RLS)
