@@ -9,9 +9,9 @@ import { formatDateTime } from '@/lib/format'
 import { deleteChargeBatch, voidChargeBatch, type AdminSite, type BatchRow, type BlockRow } from '../api'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ReasonDialog } from '../components/ReasonDialog'
-import { ErrorBlock, LoadingBlock } from '../components/StateBlocks'
+import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { canDeleteBatch, chargeErrorMessage, describeTarget, monthLabel, SPLIT_LABELS } from '../lib/charges'
-import { formatKurus } from '../lib/money'
+import { formatKurus } from '@/lib/money'
 import { useBatches, useRefreshCharges } from '../queries'
 
 type ConfirmState = { kind: 'void' | 'delete'; batch: BatchRow }

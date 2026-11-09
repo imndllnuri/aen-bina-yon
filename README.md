@@ -40,6 +40,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0001_core.sql` | companies, sites, blocks, units, profiles, site_members, unit_residents, quote_requests, helper functions, RLS |
 | `supabase/migrations/0002_residents.sql` | `accept_kvkk()`, `set_profile_active()`, guard against archiving occupied units, "end date = day moved out" |
 | `supabase/migrations/0003_charges.sql` | charge types, monthly plans, charge batches, charges, the split function and the charge RPCs (see "Charges" below) |
+| `supabase/migrations/0004_resident_charges.sql` | residents read their own charges: the visibility rule, `charge_status` and `unit_balances` views (see "Resident panel" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -135,6 +136,39 @@ and **Tek borç ekle**.
   fees** (they need payment data; `Gecikme Tazminatı` exists only as a charge type). When payments
   arrive, slice 6 must also stop amount edits, voiding and archiving for lines that have payments
   (marked in the SQL comments).
+
+### Resident panel (slice 5)
+
+Resident pages: `/#/panel` (Ana Sayfa: total debt, overdue part, next due date, next 3 charges) and
+`/#/borclarim` (tabs Ödenmemiş / Gelecek / Ödenmiş / Tümü, and the **Ekstre** statement with
+opening balance, running balance and closing balance; "Yazdır / PDF" uses the browser print dialog).
+
+- **The visibility rule lives in one place:** `private.resident_sees_charge()` (migration 0004).
+  A resident sees lines only for a **current** residency of an **active** account (`end_date` is the
+  day they moved out). Cancelled lines are hidden.
+  - An **owner** sees every line of the unit.
+  - A **tenant** sees only lines marked "kiracıya yansıt" **and** whose due date is on or after the
+    tenant's own start date. So a new tenant never sees the previous tenant's lines.
+  - Someone who moved out, or has not moved in yet, sees nothing.
+- **Consequence for admins:** the start date ("Taşınma tarihi") must be the real move-in date. If an
+  existing tenant is entered with today's date, their older lines stay hidden. The date can be
+  corrected later in Sakinler -> Bilgileri düzenle.
+- **The browser never decides visibility.** Lists, the balance and the running balance all come from
+  the database (`charge_status`, `unit_balances` are `security_invoker` views, so RLS applies). The
+  `tenant_visible` flag is not even in the view: residents are never shown it.
+- **Sign-out clears the data cache** and resident cache keys contain the person's id, so two people on one
+  computer (or an owner and a tenant of one unit) never see each other's cached data.
+- **Not yet (honest "coming soon" states, no dead buttons):** online payment ("Hemen Öde"), "Ödenmiş"
+  lines and "Son ödemeler" (slice 6), announcements (slice 8), requests (slice 9). Slice 6 must replace
+  the two views (`paid_amount` is 0 now) and extend the guards listed in `0003_charges.sql`.
+
+### Testing the resident panel with your own account
+
+An invite is a one-time link (nothing is e-mailed). Use an address that is **not** the admin's, for
+example a "+" alias of your own mailbox. Open the link in a private window or another browser, so the
+admin session is not replaced. Set the move-in date to today or earlier. The best test is two accounts
+on one unit: an owner and a tenant. Then add a "Demirbaş" charge to that unit: the owner sees it, the
+tenant does not.
 
 ### Login, invites and password reset
 

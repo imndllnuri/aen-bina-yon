@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { todayIstanbul } from '@/lib/format'
 import { inviteErrorMessage, inviteResident, type BlockRow, type InviteResult, type UnitRow } from '../api'
-import { inviteSchema, RELATIONS, type InviteFormValues } from '../lib/schemas'
+import { inviteSchema, RELATIONS, START_DATE_HINT, type InviteFormValues } from '../lib/schemas'
 
 export interface InviteDone {
   result: Extract<InviteResult, { ok: true }>
@@ -118,7 +118,7 @@ function InviteForm({ onOpenChange, blocks, units, onDone }: InviteDialogProps) 
             )}
           </FormField>
         </div>
-        <FormField id="invite-start" label="Taşınma tarihi" error={errors.startDate?.message}>
+        <FormField id="invite-start" label="Taşınma tarihi" error={errors.startDate?.message} hint={START_DATE_HINT}>
           {(props) => <Input {...props} {...register('startDate')} type="date" className="h-10 sm:w-56" />}
         </FormField>
 

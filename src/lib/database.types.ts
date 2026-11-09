@@ -340,6 +340,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"charge_status": {
+                  Row: {
+                    "amount": number,"block_name": string | null,"charge_id": string,"charge_type_id": string,"created_at": string,"description": string | null,"door_no": string | null,"due_date": string,"paid_amount": number | null,"period": string | null,"remaining": number | null,"running_balance": number | null,"status": string | null,"type_name": string | null,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "charges_charge_type_id_fkey"
+      columns: ["charge_type_id"]
+isOneToOne: false
+      referencedRelation: "charge_types"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"unit_balances": {
+                  Row: {
+                    "balance": number | null,"charged": number | null,"line_count": number | null,"next_due_date": string | null,"overdue_amount": number | null,"overdue_count": number | null,"paid": number | null,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    {
+      foreignKeyName: "charges_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Functions: {

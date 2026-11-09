@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatDate } from '@/lib/format'
 import { generatePlan, previewCharge, type AdminSite, type PlanRow } from '../api'
 import { chargeErrorMessage, currentMonthIstanbul, dueDateFor, monthLabel, SPLIT_LABELS, type ChargeTarget } from '../lib/charges'
-import { formatKurus, sumKurus } from '../lib/money'
-import { FormError } from './StateBlocks'
+import { formatKurus, sumKurus } from '@/lib/money'
+import { FormError } from '@/components/StateBlocks'
 
 interface PlanGenerateDialogProps {
   open: boolean

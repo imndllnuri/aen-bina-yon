@@ -12,9 +12,9 @@ import { formatDate, todayIstanbul } from '@/lib/format'
 import { CHARGE_LIST_LIMIT, voidCharge, type AdminSite, type BlockRow, type ChargeRow, type ChargeTypeRow } from '../api'
 import { ChargeEditDialog } from '../components/ChargeEditDialog'
 import { ReasonDialog } from '../components/ReasonDialog'
-import { ErrorBlock, LoadingBlock } from '../components/StateBlocks'
+import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { chargeStatus, currentMonthIstanbul, matchesChargeQuery, monthLabel, monthOptions, STATUS_LABELS, summarizeCharges, type ChargeStatus } from '../lib/charges'
-import { formatKurus } from '../lib/money'
+import { formatKurus } from '@/lib/money'
 import { useCharges, useRefreshCharges } from '../queries'
 
 const STATUS_VARIANT: Record<ChargeStatus, 'outline' | 'destructive' | 'secondary'> = { open: 'outline', overdue: 'destructive', voided: 'secondary' }

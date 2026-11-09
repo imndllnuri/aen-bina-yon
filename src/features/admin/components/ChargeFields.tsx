@@ -5,7 +5,7 @@ import { NativeSelect } from '@/components/NativeSelect'
 import { Input } from '@/components/ui/input'
 import type { ChargeTypeRow } from '../api'
 import { dueDateFor, monthOptions } from '../lib/charges'
-import { formatKurus, parseTryAmount } from '../lib/money'
+import { formatKurus, parseTryAmount } from '@/lib/money'
 import { CheckboxField } from './CheckboxField'
 
 

@@ -10,10 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { createChargeBatch, type AdminSite, type BlockRow, type ChargeTypeRow, type CreateBatchInput, type UnitRow } from '../api'
 import { chargeErrorMessage, currentMonthIstanbul, dueDateFor } from '../lib/charges'
 import { kurusOf, singleChargeSchema, type SingleChargeValues } from '../lib/charge-schemas'
-import { formatKurus } from '../lib/money'
+import { formatKurus } from '@/lib/money'
 import { createRequestIds } from '../lib/request-ids'
 import { ChargeFields, type DetailsShape } from './ChargeFields'
-import { FormError } from './StateBlocks'
+import { FormError } from '@/components/StateBlocks'
 
 interface SingleChargeDialogProps {
   open: boolean

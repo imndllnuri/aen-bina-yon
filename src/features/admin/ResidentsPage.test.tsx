@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   fetchUnits: vi.fn(),
   fetchResidents: vi.fn(),
   updateProfileContact: vi.fn(),
+  updateResidencyStart: vi.fn(),
   endResidency: vi.fn(),
   deleteResidency: vi.fn(),
   setProfileActive: vi.fn(),
@@ -45,7 +46,7 @@ beforeEach(() => {
   api.fetchBlocks.mockResolvedValue([block])
   api.fetchUnits.mockResolvedValue(units)
   api.fetchResidents.mockResolvedValue([active, pending, inactive, past])
-  for (const fn of [api.updateProfileContact, api.endResidency, api.deleteResidency, api.setProfileActive]) fn.mockResolvedValue(undefined)
+  for (const fn of [api.updateProfileContact, api.updateResidencyStart, api.endResidency, api.deleteResidency, api.setProfileActive]) fn.mockResolvedValue(undefined)
 })
 
 const open = () => renderRoutes(routes, { path: '/yonetim/sakinler', authState: signedInState(['admin']) })
@@ -324,5 +325,64 @@ describe('Sakinler page: actions on a resident', () => {
     await user.clear(within(dialog).getByRole('textbox', { name: 'Telefon' }))
     await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
     await waitFor(() => expect(api.updateProfileContact).toHaveBeenCalledWith('p1', { full_name: 'Ayşe Yıldız', phone: null }))
+  })
+})
+
+describe('Sakinler page: the move-in date (it decides what a tenant can see)', () => {
+  async function openMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(await screen.findByRole('button', { name: `${name} için işlemler` }))
+    return screen.findByRole('menu')
+  }
+
+  it('explains the date when inviting', async () => {
+    const user = userEvent.setup()
+    open()
+    await screen.findByText('Ayşe Kaya')
+    await user.click(screen.getByRole('button', { name: /Sakin ekle/ }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Kiracı, bu tarihten önce son ödeme tarihi olan borçları göremez/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/Kat maliki tüm borçları görür/)).toBeInTheDocument()
+  })
+
+  it('lets the admin correct the move-in date', async () => {
+    const user = userEvent.setup()
+    open()
+    const menu = await openMenu(user, 'Ayşe Kaya')
+    await user.click(within(menu).getByRole('menuitem', { name: 'Bilgileri düzenle' }))
+    const dialog = await screen.findByRole('dialog')
+    const start = within(dialog).getByLabelText(/Taşınma tarihi/)
+    expect(start).toHaveValue('2020-01-01')
+    await user.clear(start)
+    await user.type(start, '2019-05-10')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(api.updateResidencyStart).toHaveBeenCalledWith('r1', '2019-05-10'))
+    expect(api.updateProfileContact).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not touch the residency when the date was not changed', async () => {
+    const user = userEvent.setup()
+    open()
+    const menu = await openMenu(user, 'Ayşe Kaya')
+    await user.click(within(menu).getByRole('menuitem', { name: 'Bilgileri düzenle' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(api.updateProfileContact).toHaveBeenCalledTimes(1))
+    expect(api.updateResidencyStart).not.toHaveBeenCalled()
+  })
+
+  it('refuses a move-in date after the move-out date', async () => {
+    api.fetchResidents.mockResolvedValue([row({ endDate: '2099-12-31' })])
+    const user = userEvent.setup()
+    open()
+    const menu = await openMenu(user, 'Ayşe Kaya')
+    await user.click(within(menu).getByRole('menuitem', { name: 'Bilgileri düzenle' }))
+    const dialog = await screen.findByRole('dialog')
+    const start = within(dialog).getByLabelText(/Taşınma tarihi/)
+    await user.clear(start)
+    await user.type(start, '2100-01-01')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+    expect(await within(dialog).findByText('Taşınma tarihi, taşındığı tarihten sonra olamaz.')).toBeInTheDocument()
+    expect(api.updateResidencyStart).not.toHaveBeenCalled()
+    expect(api.updateProfileContact).not.toHaveBeenCalled()
   })
 })

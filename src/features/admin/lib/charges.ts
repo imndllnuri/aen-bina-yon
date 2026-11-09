@@ -1,4 +1,4 @@
-import { todayIstanbul } from '@/lib/format'
+import { currentMonthIstanbul, monthLabel, todayIstanbul } from '@/lib/format'
 
 // Pure helpers for the Borçlandırma (charges) pages: labels, month lists, status, error messages.
 // Nothing here talks to the network, so everything can be tested on its own.
@@ -60,17 +60,8 @@ export function describeTarget(target: unknown, blockNames: Record<string, strin
 // ---------------------------------------------------------------------------
 // Months (a "dönem" is stored as the first day of a month: "2026-11-01")
 // ---------------------------------------------------------------------------
-const MONTH_LABEL = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-
-/** "2026-11-01" -> "Kasım 2026" */
-export function monthLabel(isoDate: string): string {
-  return MONTH_LABEL.format(new Date(`${isoDate}T12:00:00Z`))
-}
-
-/** The first day of the current month in Istanbul, "YYYY-MM-01". */
-export function currentMonthIstanbul(now: Date = new Date()): string {
-  return `${todayIstanbul(now).slice(0, 7)}-01`
-}
+// monthLabel() and currentMonthIstanbul() live in @/lib/format (the resident pages use them too).
+export { currentMonthIstanbul, monthLabel }
 
 /** Months for a dropdown: `back` months before the current one, the current one, `forward` after. Newest first. */
 export function monthOptions(now: Date = new Date(), back = 12, forward = 2): { value: string; label: string }[] {

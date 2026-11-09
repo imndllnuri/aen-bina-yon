@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { SPLIT_METHODS } from './charges'
-import { moneyProblemMessage, parseTryAmount } from './money'
+import { moneyProblemMessage, parseTryAmount } from '@/lib/money'
 
 // Form rules for the Borçlandırma dialogs. They give friendly Turkish messages first.
 // The database repeats every rule, so these are a convenience and never the real guard.

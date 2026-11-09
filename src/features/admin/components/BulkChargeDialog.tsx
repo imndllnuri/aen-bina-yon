@@ -33,10 +33,10 @@ import {
   type ChargeTarget,
   type SplitMethod,
 } from '../lib/charges'
-import { formatKurus, sumKurus } from '../lib/money'
+import { formatKurus, sumKurus } from '@/lib/money'
 import { createRequestIds } from '../lib/request-ids'
 import { ChargeFields, type DetailsShape } from './ChargeFields'
-import { FormError } from './StateBlocks'
+import { FormError } from '@/components/StateBlocks'
 import { TargetPicker } from './TargetPicker'
 
 type Step = 'target' | 'details' | 'preview'

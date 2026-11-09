@@ -119,3 +119,13 @@ export const residentContactSchema = z.object({
   phone: z.string().trim().refine((v) => v === '' || PHONE.test(v), 'Geçerli bir telefon numarası yazın. Örnek: 0532 000 00 00'),
 })
 export type ResidentContactValues = z.infer<typeof residentContactSchema>
+
+/** The edit dialog also lets the admin correct the move-in date (it decides what a tenant can see). */
+export const residentEditSchema = residentContactSchema.extend({
+  startDate: z.string().refine((v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T00:00:00Z`).getTime()), 'Geçerli bir taşınma tarihi seçin.'),
+})
+export type ResidentEditValues = z.infer<typeof residentEditSchema>
+
+/** Why the move-in date matters, shown under the date field (plan, section 14: tenants and owners). */
+export const START_DATE_HINT =
+  'Gerçek taşınma tarihini yazın. Kiracı, bu tarihten önce son ödeme tarihi olan borçları göremez (önceki kiracının borçlarıdır). Kat maliki tüm borçları görür.'

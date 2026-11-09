@@ -10,6 +10,8 @@ import { BorclandirmaPage } from '@/features/admin/BorclandirmaPage'
 import { ResidentsPage } from '@/features/admin/ResidentsPage'
 import { UnitsPage } from '@/features/admin/UnitsPage'
 import { NotFound } from '@/features/NotFound'
+import { DebtsPage } from '@/features/resident/DebtsPage'
+import { PanelPage } from '@/features/resident/PanelPage'
 import { Contact } from '@/features/public/Contact'
 import { Home } from '@/features/public/Home'
 import { Kvkk } from '@/features/public/Kvkk'
@@ -47,8 +49,8 @@ export const routes: RouteObject[] = [
       </RequireRole>
     ),
     children: [
-      { path: '/panel', element: page('Ana Sayfa') },
-      { path: '/borclarim', element: page('Borçlarım') },
+      { path: '/panel', element: <PanelPage /> },
+      { path: '/borclarim', element: <DebtsPage /> },
       { path: '/odeme', element: page('Ödeme Yap') },
       { path: '/odemelerim', element: page('Ödemelerim') },
       { path: '/havale-bildirimi', element: page('Havale Bildir') },

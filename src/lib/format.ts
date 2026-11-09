@@ -63,3 +63,15 @@ export function todayIstanbul(now: Date = new Date()): string {
   // The "en-CA" locale prints dates as YYYY-MM-DD.
   return new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(now)
 }
+
+const monthFormat = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+
+/** "2026-11-01" -> "Kasım 2026" (a month is stored as the first day of that month). */
+export function monthLabel(isoDate: string): string {
+  return monthFormat.format(new Date(`${isoDate}T12:00:00Z`))
+}
+
+/** The first day of the current month in Istanbul, "YYYY-MM-01". */
+export function currentMonthIstanbul(now: Date = new Date()): string {
+  return `${todayIstanbul(now).slice(0, 7)}-01`
+}

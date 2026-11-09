@@ -49,13 +49,13 @@ export function ResidentLayout() {
 
   return (
     <div className="flex min-h-svh flex-col md:flex-row">
-      <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r bg-sidebar p-4 md:flex">
+      <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r bg-sidebar p-4 md:flex print:hidden">
         <BrandLogo to="/panel" />
         <SidebarNav groups={sidebarGroups} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur print:hidden">
           <div className="md:hidden">
             <BrandLogo to="/panel" />
           </div>
@@ -74,13 +74,13 @@ export function ResidentLayout() {
         </header>
 
         {/* pb-20: keep content clear of the bottom tab bar on phones */}
-        <main className="flex-1 pb-20 md:pb-0">
+        <main className="flex-1 pb-20 md:pb-0 print:pb-0">
           <Outlet />
         </main>
 
         <nav
           aria-label="Alt menü"
-          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden print:hidden"
         >
           {tabs.map((tab) => (
             <NavLink

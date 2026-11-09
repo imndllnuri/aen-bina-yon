@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea'
 import { chargeErrorMessage } from '../lib/charges'
 import { reasonSchema, type ReasonValues } from '../lib/charge-schemas'
-import { FormError } from './StateBlocks'
+import { FormError } from '@/components/StateBlocks'
 
 interface ReasonDialogProps {
   open: boolean

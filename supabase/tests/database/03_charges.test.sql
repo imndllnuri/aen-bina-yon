@@ -380,15 +380,16 @@ select is(pg_temp.types_of_firma1(), 6::bigint, '...and the 6 charge types of th
 -- the owner and the tenant: nothing yet (resident rules arrive with slice 5)
 reset role;
 select pg_temp.act_as('b1000000-0000-0000-0000-000000000001');
-select is(pg_temp.seen(), '0/0/0/0', 'an owner sees no charge data yet (default deny until slice 5)');
-select is(pg_temp.types_of_firma1(), 0::bigint, '...and no charge types');
+-- (Resident reading arrived with 0004; the full rule is tested in 04_resident_charges.test.sql.)
+select is(pg_temp.seen(), '1/0/0/0', 'an owner sees only the line of their own unit, and no batches or plans');
+select is(pg_temp.types_of_firma1(), 6::bigint, '...and the charge types of their company (for the type name)');
 select throws_ok($$select * from tt.preview('{"scope":"site"}', 'equal', 1000)$$, '42501', 'not allowed', 'an owner cannot preview');
 select throws_ok($$select tt.create_b('e0000000-0000-0000-0000-0000000000f1', '{"scope":"site"}', 'equal', 1000000, 16, 1000000)$$,
   '42501', 'not allowed', 'an owner cannot create charges');
 select throws_ok($$select public.void_charge((select id from public.charges limit 1), 'deneme deneme')$$, '42501', null, 'an owner cannot void a charge');
 reset role;
 select pg_temp.act_as('b2000000-0000-0000-0000-000000000002');
-select is(pg_temp.seen(), '0/0/0/0', 'a tenant sees no charge data yet');
+select is(pg_temp.seen(), '1/0/0/0', 'a tenant sees only the (tenant-visible) line of their own unit');
 
 -- a stranger
 reset role;

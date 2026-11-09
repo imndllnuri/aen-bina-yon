@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import type { GeneratedUnit } from './lib/bulk-units'
 import type { ChargeTarget, SplitMethod } from './lib/charges'
 import { compareDoorNo } from './lib/door-no'
-import { toKurus } from './lib/money'
+import { toKurus } from '@/lib/money'
 
 // Everything the admin pages ask Supabase. Row Level Security decides what an admin may see:
 // these functions never filter for permission, they only ask. (Plan, section 9.)
@@ -196,6 +196,12 @@ export async function fetchResidents(siteId: string): Promise<ResidentRow[]> {
 
 export async function updateProfileContact(profileId: string, values: { full_name: string; phone: string | null }): Promise<void> {
   const { error } = await client().from('profiles').update(values).eq('id', profileId)
+  if (error) throw error
+}
+
+/** Correct the move-in date. For a tenant it decides which charge lines they can see (migration 0004). */
+export async function updateResidencyStart(residencyId: string, startDate: string): Promise<void> {
+  const { error } = await client().from('unit_residents').update({ start_date: startDate }).eq('id', residencyId)
   if (error) throw error
 }
 

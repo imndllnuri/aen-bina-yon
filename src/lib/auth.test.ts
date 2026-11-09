@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { homePathFor, loadAuthState, useAuthState } from './auth'
+import { MemoryRouter } from 'react-router'
+import { AUTH_QUERY_KEY, homePathFor, loadAuthState, useAuthState, useSignOut } from './auth'
 
 // A tiny stand-in for the Supabase query builder: every method returns itself, and the whole
 // chain can be awaited to get the prepared answer.
@@ -36,7 +37,7 @@ vi.mock('@/lib/supabase', () => ({
   get supabase() {
     return mocks.configured
       ? {
-          auth: { getSession: async () => ({ data: { session: mocks.session }, error: null }) },
+          auth: { getSession: async () => ({ data: { session: mocks.session }, error: null }), signOut: async () => ({ error: null }) },
           from: (table: string) => chain(mocks.tables[table]),
         }
       : null
@@ -132,5 +133,27 @@ describe('useAuthState: re-checks the account when the tab gets focus again', ()
       window.dispatchEvent(new Event('visibilitychange'))
     })
     await waitFor(() => expect(result.current.data).toMatchObject({ roles: [], active: false }))
+  })
+})
+
+describe('useSignOut', () => {
+  it('forgets every cached answer except "who is logged in", so the next person never sees the last one\'s data', async () => {
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(['resident', 'ledger', 'u1', 'unit-1'], [{ amount: 150000 }])
+    queryClient.setQueryData(['resident', 'balance', 'u1', 'unit-1'], { balance: 150000 })
+    queryClient.setQueryData(['admin', 'charges', 's1'], [{ id: 'c1' }])
+    queryClient.setQueryData(AUTH_QUERY_KEY, { status: 'signed-in', session, roles: ['resident'], active: true })
+
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(QueryClientProvider, { client: queryClient }, createElement(MemoryRouter, null, children))
+    const { result } = renderHook(() => useSignOut(), { wrapper })
+    await act(async () => {
+      await result.current()
+    })
+
+    expect(queryClient.getQueryData(['resident', 'ledger', 'u1', 'unit-1'])).toBeUndefined()
+    expect(queryClient.getQueryData(['resident', 'balance', 'u1', 'unit-1'])).toBeUndefined()
+    expect(queryClient.getQueryData(['admin', 'charges', 's1'])).toBeUndefined()
+    expect(queryClient.getQueryData(AUTH_QUERY_KEY)).toEqual({ status: 'anonymous', session: null, roles: [] })
   })
 })

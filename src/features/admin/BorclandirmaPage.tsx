@@ -9,7 +9,7 @@ import { PlansTab } from './charges/PlansTab'
 import { BulkChargeDialog } from './components/BulkChargeDialog'
 import { SingleChargeDialog } from './components/SingleChargeDialog'
 import { SiteGate } from './components/SiteGate'
-import { ErrorBlock, LoadingBlock } from './components/StateBlocks'
+import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { useBlocks, useChargeTypes, useRefreshCharges, useUnits } from './queries'
 
 function BorclandirmaContent({ site }: { site: AdminSite }) {

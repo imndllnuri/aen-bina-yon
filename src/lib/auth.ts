@@ -95,6 +95,9 @@ export function useSignOut() {
     } catch (error) {
       console.warn('Sign-out request failed:', error)
     }
+    // Forget every cached answer (charges, balances, residents ...) except "who is logged in".
+    // On a shared computer the next person must never see, even for a moment, what the last one saw.
+    queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== AUTH_QUERY_KEY[0] })
     // Reset the cached state BEFORE leaving. Otherwise the login page would still see
     // "signed in" and send the person straight back into the panel.
     queryClient.setQueryData<AuthState>(AUTH_QUERY_KEY, loggedOutState())

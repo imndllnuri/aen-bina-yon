@@ -9,9 +9,9 @@ import { formatDate } from '@/lib/format'
 import { setPlanActive, type AdminSite, type BlockRow, type ChargeTypeRow, type PlanRow, type UnitRow } from '../api'
 import { PlanDialog } from '../components/PlanDialog'
 import { PlanGenerateDialog } from '../components/PlanGenerateDialog'
-import { ErrorBlock, LoadingBlock } from '../components/StateBlocks'
+import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { chargeErrorMessage, currentMonthIstanbul, describeTarget, dueDateFor, monthLabel, SPLIT_LABELS } from '../lib/charges'
-import { formatKurus } from '../lib/money'
+import { formatKurus } from '@/lib/money'
 import { usePlans, useRefreshCharges } from '../queries'
 
 /** Monthly plans. "Bu ayı oluştur" turns a plan into this month's charges (twice for one month is refused). */

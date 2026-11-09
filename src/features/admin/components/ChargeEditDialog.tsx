@@ -10,9 +10,9 @@ import { Input } from '@/components/ui/input'
 import { updateCharge, type ChargeRow } from '../api'
 import { chargeEditSchema, kurusOf, type ChargeEditValues } from '../lib/charge-schemas'
 import { chargeErrorMessage } from '../lib/charges'
-import { formatKurus } from '../lib/money'
+import { formatKurus } from '@/lib/money'
 import { CheckboxField } from './CheckboxField'
-import { FormError } from './StateBlocks'
+import { FormError } from '@/components/StateBlocks'
 
 interface ChargeEditDialogProps {
   open: boolean

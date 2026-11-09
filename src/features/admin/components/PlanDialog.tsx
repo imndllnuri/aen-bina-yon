@@ -11,9 +11,9 @@ import { Input } from '@/components/ui/input'
 import { savePlan, type AdminSite, type BlockRow, type ChargeTypeRow, type PlanRow, type UnitRow } from '../api'
 import { kurusOf, planSchema, type PlanValues } from '../lib/charge-schemas'
 import { chargeErrorMessage, SPLIT_METHODS, type ChargeTarget, type SplitMethod } from '../lib/charges'
-import { formatKurus, parseTryAmount } from '../lib/money'
+import { formatKurus, parseTryAmount } from '@/lib/money'
 import { CheckboxField } from './CheckboxField'
-import { FormError } from './StateBlocks'
+import { FormError } from '@/components/StateBlocks'
 import { TargetPicker } from './TargetPicker'
 
 interface PlanDialogProps {
