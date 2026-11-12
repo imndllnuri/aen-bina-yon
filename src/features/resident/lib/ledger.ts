@@ -4,7 +4,7 @@
 // Security, migration 0004). A tenant's list already arrives without the lines they may not see, and
 // the running balance already counts only the visible lines. These helpers only sort, group and label.
 
-export type LineStatus = 'open' | 'overdue'
+export type LineStatus = 'open' | 'overdue' | 'partial' | 'paid'
 
 export interface LedgerLine {
   id: string
@@ -25,6 +25,8 @@ export interface LedgerLine {
 export const STATUS_LABEL: Record<LineStatus, string> = {
   open: 'Ödenmedi',
   overdue: 'Gecikmiş',
+  partial: 'Kısmi',
+  paid: 'Ödendi',
 }
 
 /** The order of the database's running balance: due date, then creation time, then id. */

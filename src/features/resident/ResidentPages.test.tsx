@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderRoutes, signedInState } from '@/test/render'
 import type { Balance, MyUnit } from './api'
@@ -12,12 +13,19 @@ const api = vi.hoisted(() => ({
   fetchMyName: vi.fn(),
   fetchBalance: vi.fn(),
   fetchLedger: vi.fn(),
+  fetchMyPayments: vi.fn(),
 }))
 vi.mock('./api', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api')>()), ...api }))
+
+// A stand-in for the checkout: shows what the page passed to it.
+function CheckoutProbe() {
+  return <pre data-testid="checkout-state">{JSON.stringify(useLocation().state)}</pre>
+}
 
 const routes = [
   { path: '/panel', element: <PanelPage /> },
   { path: '/borclarim', element: <DebtsPage /> },
+  { path: '/odeme', element: <CheckoutProbe /> },
 ]
 
 const unit = (over: Partial<MyUnit> = {}): MyUnit => ({ unitId: 'u1', doorNo: '1', blockName: 'A Blok', siteName: 'Demo Sitesi', relations: ['owner'], ...over })
@@ -50,10 +58,13 @@ beforeEach(() => {
   api.fetchMyName.mockResolvedValue('Ayşe Kaya')
   api.fetchBalance.mockResolvedValue(balance)
   api.fetchLedger.mockResolvedValue(ledger)
+  api.fetchMyPayments.mockResolvedValue([])
 })
 afterEach(() => vi.useRealTimers())
 
 const open = (path: string) => renderRoutes(routes, { path, authState: signedInState(['resident']) })
+// The sentence is split over several elements, so look at the whole paragraph.
+const selectedBar = () => screen.getByText((_, element) => element?.tagName === 'P' && /borç seçildi/.test(element.textContent ?? ''))
 const money = (text: string) => new RegExp(text.replace(/[.,]/g, (c) => `\\${c}`))
 
 describe('Ana Sayfa', () => {
@@ -78,12 +89,39 @@ describe('Ana Sayfa', () => {
     expect(within(items[2]).getByText('Ödenmedi')).toHaveAttribute('data-variant', 'outline') // not late yet: calm
   })
 
-  it('is honest about what is not there yet: no working pay button, clear "soon" cards', async () => {
+  it('"Hemen Öde" pays what is due now: it opens the checkout with the three due lines selected', async () => {
+    const user = userEvent.setup()
     open('/panel')
     const pay = await screen.findByRole('button', { name: 'Hemen Öde' })
-    expect(pay).toBeDisabled()
-    expect(screen.getByText(/Online ödeme çok yakında açılacak/)).toBeInTheDocument()
-    for (const title of ['Son ödemeler', 'Duyurular', 'Taleplerim']) expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(pay).toBeEnabled()
+    await user.click(pay)
+    expect(JSON.parse((await screen.findByTestId('checkout-state')).textContent!)).toEqual({ chargeIds: ['l1', 'l2', 'l3'] })
+  })
+
+  it('does not offer "Hemen Öde" when nothing is due yet, and says why', async () => {
+    api.fetchLedger.mockResolvedValue([ledger[3], ledger[4]])
+    open('/panel')
+    expect(await screen.findByRole('button', { name: 'Hemen Öde' })).toBeDisabled()
+    expect(screen.getByText(/Vadesi gelmiş borç yok/)).toBeInTheDocument()
+  })
+
+  it('shows the last three payments, and says so when there are none', async () => {
+    api.fetchMyPayments.mockResolvedValue([
+      { id: 'p1', receiptNo: 'MKB-2026-000003', paidAt: '2026-11-08T10:00:00Z', amountKurus: 150000, feeKurus: 0, method: 'card', status: 'approved', installments: 1, unitLabel: 'A Blok · 1', payerName: 'Ayşe Kaya', mine: true },
+      { id: 'p2', receiptNo: 'MKB-2026-000002', paidAt: '2026-11-07T10:00:00Z', amountKurus: 10000, feeKurus: 0, method: 'card', status: 'voided', installments: 1, unitLabel: 'A Blok · 1', payerName: 'Ayşe Kaya', mine: true },
+    ])
+    open('/panel')
+    const card = (await screen.findByRole('heading', { name: 'Son ödemeler' })).closest('[data-slot="card"]') as HTMLElement
+    expect(await within(card).findByText(/MKB-2026-000003/)).toBeInTheDocument()
+    expect(within(card).queryByText(/MKB-2026-000002/)).not.toBeInTheDocument() // a cancelled payment is not "recent"
+    expect(within(card).getByText(money('₺1.500,00'))).toBeInTheDocument()
+  })
+
+  it('has honest "coming soon" cards for the parts that are not built yet', async () => {
+    open('/panel')
+    await screen.findByRole('button', { name: 'Hemen Öde' })
+    for (const title of ['Duyurular', 'Taleplerim']) expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(screen.getByText('Henüz bir ödeme yapılmadı.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Borçlarım' })).toHaveAttribute('href', '/borclarim')
   })
 
@@ -189,12 +227,44 @@ describe('Borçlarım', () => {
     expect(await screen.findByText('Henüz adınıza borç yazılmamış.')).toBeInTheDocument()
   })
 
-  it('never shows the "for tenants" flag, and has no payment control yet', async () => {
+  it('never shows the "for tenants" flag', async () => {
     open('/borclarim')
     await screen.findAllByRole('listitem')
     expect(screen.queryByText(/kiracıya yansıt/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Öde/ })).not.toBeInTheDocument()
+  })
+
+  it('lets the resident tick lines, shows the total, and opens the checkout with exactly those lines', async () => {
+    const user = userEvent.setup()
+    open('/borclarim')
+    expect(screen.queryByRole('button', { name: /Seçilenleri Öde/ })).not.toBeInTheDocument() // nothing ticked yet
+    await user.click(await screen.findByRole('checkbox', { name: /Aidat Eylül 2026 seç/ }))
+    await user.click(screen.getByRole('checkbox', { name: /Aidat Ekim 2026 seç/ }))
+    expect(selectedBar()).toHaveTextContent('2 borç seçildi')
+    expect(selectedBar()).toHaveTextContent(money('₺3.000,00'))
+    await user.click(screen.getByRole('button', { name: /Seçilenleri Öde \(₺3\.000,00\)/ }))
+    expect(JSON.parse((await screen.findByTestId('checkout-state')).textContent!)).toEqual({ chargeIds: ['l1', 'l2'] })
+  })
+
+  it('can select everything that is due in one click', async () => {
+    const user = userEvent.setup()
+    open('/borclarim')
+    await user.click(await screen.findByRole('button', { name: 'Vadesi gelenlerin hepsini seç' }))
+    expect(selectedBar()).toHaveTextContent('3 borç seçildi')
+    expect(selectedBar()).toHaveTextContent(money('₺4.500,00'))
+    await user.click(screen.getByRole('button', { name: 'Temizle' }))
+    expect(screen.queryByRole('button', { name: /Seçilenleri Öde/ })).not.toBeInTheDocument()
+  })
+
+  it('shows a paid line as paid with its full amount, and offers no tick box for it', async () => {
+    const user = userEvent.setup()
+    api.fetchLedger.mockResolvedValue([line({ id: 'pd', dueDate: '2026-10-15', status: 'paid', amountKurus: 150000, paidKurus: 150000, remainingKurus: 0 }), ledger[2]])
+    open('/borclarim')
+    await user.click(await screen.findByRole('tab', { name: /Ödenmiş/ }))
+    const items = await screen.findAllByRole('listitem')
+    expect(items).toHaveLength(1)
+    expect(within(items[0]).getByText('Ödendi')).toBeInTheDocument()
+    expect(within(items[0]).getByText(money('₺1.500,00'))).toBeInTheDocument()
+    expect(within(items[0]).queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
   it('shows an error block with a retry when the lines cannot be loaded', async () => {

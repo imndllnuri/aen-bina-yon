@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useAuthState } from '@/lib/auth'
-import { fetchBalance, fetchLedger, fetchMyName, fetchMyUnits } from './api'
+import { fetchBalance, fetchLedger, fetchMyName, fetchMyPayments, fetchMyUnits } from './api'
 
 export const residentKeys = {
   units: (userId: string) => ['resident', 'units', userId] as const,
   name: (userId: string) => ['resident', 'name', userId] as const,
+  payments: (userId: string) => ['resident', 'payments', userId] as const,
   // The person's id is part of every key: two people who look at the same unit (an owner and a tenant)
   // never share cached answers, because they are allowed to see different lines.
   balance: (userId: string, unitId: string) => ['resident', 'balance', userId, unitId] as const,
@@ -63,4 +64,9 @@ export function useBalance(unitId: string) {
 export function useLedger(unitId: string) {
   const userId = useUserId()
   return useQuery({ queryKey: residentKeys.ledger(userId ?? '', unitId), queryFn: () => fetchLedger(unitId), enabled: userId !== null })
+}
+
+export function useMyPayments() {
+  const userId = useUserId()
+  return useQuery({ queryKey: residentKeys.payments(userId ?? ''), queryFn: () => fetchMyPayments(userId!), enabled: userId !== null })
 }

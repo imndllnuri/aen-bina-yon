@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useAuthState } from '@/lib/auth'
-import { fetchAdminSites, fetchBatches, fetchBlocks, fetchChargeTypes, fetchCharges, fetchPlans, fetchResidents, fetchUnits, type ChargeFilters } from './api'
+import { fetchAdminPayments, fetchAdminSites, fetchBatches, fetchBlocks, fetchChargeTypes, fetchCharges, fetchPlans, fetchResidents, fetchUnits, type ChargeFilters } from './api'
 
 export const adminKeys = {
   sites: (userId: string) => ['admin', 'sites', userId] as const,
@@ -13,6 +13,7 @@ export const adminKeys = {
   charges: (siteId: string, filters?: ChargeFilters) => (filters ? (['admin', 'charges', siteId, filters] as const) : (['admin', 'charges', siteId] as const)),
   batches: (siteId: string) => ['admin', 'batches', siteId] as const,
   plans: (siteId: string) => ['admin', 'plans', siteId] as const,
+  payments: (siteId: string) => ['admin', 'payments', siteId] as const,
 }
 
 const SITE_KEY = 'aen-admin-site'
@@ -80,6 +81,7 @@ export const useCharges = (siteId: string, filters: ChargeFilters) =>
     placeholderData: keepPreviousData,
   })
 export const useBatches = (siteId: string) => useQuery({ queryKey: adminKeys.batches(siteId), queryFn: () => fetchBatches(siteId) })
+export const useAdminPayments = (siteId: string) => useQuery({ queryKey: adminKeys.payments(siteId), queryFn: () => fetchAdminPayments(siteId) })
 export const usePlans = (siteId: string) => useQuery({ queryKey: adminKeys.plans(siteId), queryFn: () => fetchPlans(siteId) })
 
 /** After any charge change: lines, batches and plans all show the new state. */
@@ -90,6 +92,7 @@ export function useRefreshCharges(siteId: string) {
       queryClient.invalidateQueries({ queryKey: adminKeys.charges(siteId) }),
       queryClient.invalidateQueries({ queryKey: adminKeys.batches(siteId) }),
       queryClient.invalidateQueries({ queryKey: adminKeys.plans(siteId) }),
+      queryClient.invalidateQueries({ queryKey: adminKeys.payments(siteId) }),
     ])
   }, [queryClient, siteId])
 }

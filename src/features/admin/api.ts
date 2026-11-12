@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import type { GeneratedUnit } from './lib/bulk-units'
 import type { ChargeTarget, SplitMethod } from './lib/charges'
 import { compareDoorNo } from './lib/door-no'
+import { todayIstanbul } from '@/lib/format'
 import { toKurus } from '@/lib/money'
 
 // Everything the admin pages ask Supabase. Row Level Security decides what an admin may see:
@@ -326,6 +327,9 @@ export interface ChargeRow {
   createdAt: string
   voidedAt: string | null
   voidReason: string | null
+  /** What has been paid on this line, and the status the database computes (open, overdue, partial, paid, voided). */
+  paidKurus: number
+  status: 'open' | 'overdue' | 'partial' | 'paid' | 'voided'
 }
 
 export interface ChargeFilters {
@@ -346,8 +350,16 @@ export async function fetchCharges(siteId: string, filters: ChargeFilters): Prom
   if (filters.period) query = query.eq('period', filters.period)
   if (filters.typeId) query = query.eq('charge_type_id', filters.typeId)
   if (filters.blockId) query = query.eq('units.block_id', filters.blockId)
-  const { data, error } = await query.order('created_at', { ascending: false }).limit(CHARGE_LIST_LIMIT)
+  // The paid amount and the status come from the database view (the same filters, so the same lines).
+  let statusQuery = client().from('charge_status').select('charge_id, paid_amount, status').eq('site_id', siteId)
+  if (filters.period) statusQuery = statusQuery.eq('period', filters.period)
+  if (filters.typeId) statusQuery = statusQuery.eq('charge_type_id', filters.typeId)
+  if (filters.blockId) statusQuery = statusQuery.eq('block_id', filters.blockId)
+  const [{ data, error }, statuses] = await Promise.all([query.order('created_at', { ascending: false }).limit(CHARGE_LIST_LIMIT), statusQuery.limit(CHARGE_LIST_LIMIT)])
   if (error) throw error
+  if (statuses.error) throw statuses.error
+  const statusOf = new Map(statuses.data.map((s) => [s.charge_id, s]))
+  const today = todayIstanbul()
   const rows = data
     .map((row) => ({
       id: row.id,
@@ -366,6 +378,12 @@ export async function fetchCharges(siteId: string, filters: ChargeFilters): Prom
       createdAt: row.created_at,
       voidedAt: row.voided_at,
       voidReason: row.void_reason,
+      paidKurus: toKurus(statusOf.get(row.id)?.paid_amount ?? 0),
+      status: ((): ChargeRow['status'] => {
+        const known = statusOf.get(row.id)?.status
+        if (known === 'open' || known === 'overdue' || known === 'partial' || known === 'paid' || known === 'voided') return known
+        return row.voided_at ? 'voided' : row.due_date < today ? 'overdue' : 'open'
+      })(),
     }))
     .sort((a, b) => a.blockName.localeCompare(b.blockName, 'tr') || compareDoorNo(a.doorNo, b.doorNo) || b.createdAt.localeCompare(a.createdAt))
   return { rows, truncated: data.length >= CHARGE_LIST_LIMIT }
@@ -554,6 +572,51 @@ export async function updateCharge(chargeId: string, edit: ChargeEdit): Promise<
 
 export async function voidCharge(chargeId: string, reason: string): Promise<void> {
   const { error } = await client().rpc('void_charge', { p_charge: chargeId, p_reason: reason })
+  if (error) throw error
+}
+
+export interface AdminPaymentRow {
+  id: string
+  receiptNo: string
+  paidAt: string
+  unitLabel: string
+  payerName: string | null
+  amountKurus: number
+  feeKurus: number
+  method: string
+  provider: string
+  installments: number
+  status: 'approved' | 'voided'
+  voidReason: string | null
+}
+
+export async function fetchAdminPayments(siteId: string): Promise<AdminPaymentRow[]> {
+  const { data, error } = await client()
+    .from('payments')
+    .select('id, receipt_no, paid_at, unit_label, payer_name, amount, fee, method, provider, installments, status, void_reason, units!inner(blocks!inner(site_id))')
+    .eq('units.blocks.site_id', siteId)
+    .order('paid_at', { ascending: false })
+    .limit(500)
+  if (error) throw error
+  return data.map((row) => ({
+    id: row.id,
+    receiptNo: row.receipt_no,
+    paidAt: row.paid_at,
+    unitLabel: row.unit_label,
+    payerName: row.payer_name,
+    amountKurus: toKurus(row.amount),
+    feeKurus: toKurus(row.fee),
+    method: row.method,
+    provider: row.provider,
+    installments: row.installments,
+    status: row.status === 'voided' ? 'voided' : 'approved',
+    voidReason: row.void_reason,
+  }))
+}
+
+/** Cancel a payment (a mistake, a test). The receipt stays, marked cancelled; the lines are unpaid again. */
+export async function voidPayment(paymentId: string, reason: string): Promise<void> {
+  const { error } = await client().rpc('void_payment', { p_payment: paymentId, p_reason: reason })
   if (error) throw error
 }
 

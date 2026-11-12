@@ -1,22 +1,27 @@
 import { CircleCheck } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { ErrorBlock } from '@/components/StateBlocks'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatDate } from '@/lib/format'
+import { formatDate, todayIstanbul } from '@/lib/format'
 import { formatKurus } from '@/lib/money'
-import { useBalance } from '../queries'
+import { linesForTab } from '../lib/ledger'
+import { useBalance, useLedger } from '../queries'
 
 /** "Ne kadar borcum var?": the number the database computes, the overdue part, and the next due date. */
 export function BalanceCard({ unitId }: { unitId: string }) {
   const balance = useBalance(unitId)
+  const ledger = useLedger(unitId)
+  const navigate = useNavigate()
 
   if (balance.isPending) return <Skeleton className="h-48 w-full" role="status" aria-label="Bakiye yükleniyor" />
   if (balance.isError) return <ErrorBlock text="Bakiyeniz şu anda yüklenemedi. Lütfen tekrar deneyin." onRetry={() => void balance.refetch()} />
 
   const b = balance.data
   const owes = b.balanceKurus > 0
+  // "Hemen Öde" pays what is due now (due date today or earlier).
+  const dueNow = ledger.data ? linesForTab(ledger.data, 'unpaid', todayIstanbul()) : []
 
   return (
     <Card>
@@ -49,15 +54,23 @@ export function BalanceCard({ unitId }: { unitId: string }) {
         )}
 
         <div className="flex flex-wrap items-center gap-3 pt-1">
-          <Button disabled aria-describedby="pay-soon">
+          <Button
+            disabled={dueNow.length === 0}
+            aria-describedby="pay-hint"
+            onClick={() => navigate('/odeme', { state: { chargeIds: dueNow.map((l) => l.id) } })}
+          >
             Hemen Öde
           </Button>
           <Button asChild variant="outline">
             <Link to="/borclarim">Borçlarım</Link>
           </Button>
         </div>
-        <p id="pay-soon" className="text-xs text-muted-foreground">
-          Online ödeme çok yakında açılacak. O zamana kadar ödemelerinizi site yönetimine iletin.
+        <p id="pay-hint" className="text-xs text-muted-foreground">
+          {dueNow.length > 0
+            ? 'Vadesi gelen borçlarınızın hepsi seçilir. Başka borçları Borçlarım sayfasından seçebilirsiniz.'
+            : owes
+              ? 'Vadesi gelmiş borç yok. Yaklaşan borçları Borçlarım sayfasından seçip ödeyebilirsiniz.'
+              : 'Ödenecek borç yok.'}
         </p>
       </CardContent>
     </Card>

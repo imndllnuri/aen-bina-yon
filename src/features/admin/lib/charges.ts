@@ -83,11 +83,13 @@ export function dueDateFor(period: string, dayOfMonth: number): string {
 // ---------------------------------------------------------------------------
 // Status of one charge line (until payments exist, a line is either open, overdue or cancelled)
 // ---------------------------------------------------------------------------
-export type ChargeStatus = 'open' | 'overdue' | 'voided'
+export type ChargeStatus = 'open' | 'overdue' | 'partial' | 'paid' | 'voided'
 
 export const STATUS_LABELS: Record<ChargeStatus, string> = {
   open: 'Ödenmedi',
   overdue: 'Gecikmiş',
+  partial: 'Kısmi',
+  paid: 'Ödendi',
   voided: 'İptal',
 }
 
@@ -159,6 +161,10 @@ export function chargeErrorMessage(error: unknown, context: ChargeErrorContext =
       return 'Son ödeme günü 1 ile 28 arasında olmalı.'
     case 'reason_invalid':
       return 'İptal nedeni en az 3, en fazla 300 karakter olmalı.'
+    case 'charge_paid':
+      return 'Bu borcun ödemesi alınmış. Önce Tahsilatlar sayfasından ödemeyi iptal edin.'
+    case 'batch_has_payments':
+      return 'Bu işlemdeki borçlardan biri için ödeme alınmış. Önce Tahsilatlar sayfasından ödemeyi iptal edin.'
     case 'already_voided':
       return 'Bu kayıt zaten iptal edilmiş.'
     case 'delete_window_closed':

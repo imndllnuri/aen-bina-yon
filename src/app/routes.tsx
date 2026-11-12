@@ -7,11 +7,16 @@ import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
 import { SetPassword } from '@/features/auth/SetPassword'
 import { BorclandirmaPage } from '@/features/admin/BorclandirmaPage'
+import { AdminPaymentsPage } from '@/features/admin/PaymentsPage'
 import { ResidentsPage } from '@/features/admin/ResidentsPage'
 import { UnitsPage } from '@/features/admin/UnitsPage'
 import { NotFound } from '@/features/NotFound'
+import { CheckoutPage } from '@/features/resident/CheckoutPage'
 import { DebtsPage } from '@/features/resident/DebtsPage'
 import { PanelPage } from '@/features/resident/PanelPage'
+import { PaymentResultPage } from '@/features/resident/PaymentResultPage'
+import { PaymentsPage } from '@/features/resident/PaymentsPage'
+import { ThreeDSecurePage } from '@/features/resident/ThreeDSecurePage'
 import { Contact } from '@/features/public/Contact'
 import { Home } from '@/features/public/Home'
 import { Kvkk } from '@/features/public/Kvkk'
@@ -51,8 +56,10 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/panel', element: <PanelPage /> },
       { path: '/borclarim', element: <DebtsPage /> },
-      { path: '/odeme', element: page('Ödeme Yap') },
-      { path: '/odemelerim', element: page('Ödemelerim') },
+      { path: '/odeme', element: <CheckoutPage /> },
+      { path: '/odeme/3d', element: <ThreeDSecurePage /> },
+      { path: '/odeme/sonuc', element: <PaymentResultPage /> },
+      { path: '/odemelerim', element: <PaymentsPage /> },
       { path: '/havale-bildirimi', element: page('Havale Bildir') },
       { path: '/duyurular', element: page('Duyurular') },
       { path: '/taleplerim', element: page('Taleplerim') },
@@ -71,7 +78,7 @@ export const routes: RouteObject[] = [
       { path: 'daireler', element: <UnitsPage /> },
       { path: 'sakinler', element: <ResidentsPage /> },
       { path: 'borclandirma', element: <BorclandirmaPage /> },
-      { path: 'tahsilatlar', element: page('Tahsilatlar') },
+      { path: 'tahsilatlar', element: <AdminPaymentsPage /> },
       { path: 'havale-onaylari', element: page('Havale Onayları') },
       { path: 'duyurular', element: page('Duyurular') },
       { path: 'talepler', element: page('Talepler') },

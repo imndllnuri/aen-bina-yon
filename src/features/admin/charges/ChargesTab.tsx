@@ -8,16 +8,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate, todayIstanbul } from '@/lib/format'
+import { formatDate } from '@/lib/format'
 import { CHARGE_LIST_LIMIT, voidCharge, type AdminSite, type BlockRow, type ChargeRow, type ChargeTypeRow } from '../api'
 import { ChargeEditDialog } from '../components/ChargeEditDialog'
 import { ReasonDialog } from '../components/ReasonDialog'
 import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
-import { chargeStatus, currentMonthIstanbul, matchesChargeQuery, monthLabel, monthOptions, STATUS_LABELS, summarizeCharges, type ChargeStatus } from '../lib/charges'
+import { currentMonthIstanbul, matchesChargeQuery, monthLabel, monthOptions, STATUS_LABELS, summarizeCharges, type ChargeStatus } from '../lib/charges'
 import { formatKurus } from '@/lib/money'
 import { useCharges, useRefreshCharges } from '../queries'
 
-const STATUS_VARIANT: Record<ChargeStatus, 'outline' | 'destructive' | 'secondary'> = { open: 'outline', overdue: 'destructive', voided: 'secondary' }
+const STATUS_VARIANT: Record<ChargeStatus, 'outline' | 'destructive' | 'secondary'> = { open: 'outline', overdue: 'destructive', partial: 'outline', paid: 'secondary', voided: 'secondary' }
 
 type StatusFilter = 'all' | 'active' | 'voided'
 
@@ -33,7 +33,6 @@ export function ChargesTab({ site, blocks, types }: { site: AdminSite; blocks: B
 
   const charges = useCharges(site.id, { period: period || null, typeId: typeId || null, blockId: blockId || null })
   const refresh = useRefreshCharges(site.id)
-  const today = todayIstanbul()
   const months = monthOptions()
 
   const filters = (
@@ -133,7 +132,7 @@ export function ChargesTab({ site, blocks, types }: { site: AdminSite; blocks: B
               </TableHeader>
               <TableBody>
                 {rows.map((row) => {
-                  const state = chargeStatus({ voided_at: row.voidedAt, due_date: row.dueDate }, today)
+                  const state = row.status
                   return (
                     <TableRow key={row.id} className={row.voidedAt ? 'text-muted-foreground' : undefined}>
                       <TableCell className="whitespace-nowrap font-medium">
@@ -152,7 +151,8 @@ export function ChargesTab({ site, blocks, types }: { site: AdminSite; blocks: B
                         <Badge variant={STATUS_VARIANT[state]}>{STATUS_LABELS[state]}</Badge>
                       </TableCell>
                       <TableCell>
-                        {!row.voidedAt && (
+                        {!row.voidedAt && row.paidKurus > 0 && <span className="text-xs text-muted-foreground">Ödeme alınmış</span>}
+                        {!row.voidedAt && row.paidKurus === 0 && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" aria-label={`${row.blockName} ${row.doorNo} için işlemler`}>

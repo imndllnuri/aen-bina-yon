@@ -8,7 +8,7 @@ import {
   reasonSchema,
   singleChargeSchema,
 } from './charge-schemas'
-import { createRequestIds } from './request-ids'
+import { createRequestIds } from '@/lib/request-ids'
 
 const goodBulk = {
   typeId: 't1',

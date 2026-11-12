@@ -171,6 +171,76 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"payment_allocations": {
+                  Row: {
+                    "amount": number,"charge_id": string,"payment_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"charge_id": string,"payment_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"charge_id"?: string,"payment_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_allocations_charge_id_fkey"
+      columns: ["charge_id"]
+isOneToOne: false
+      referencedRelation: "charge_status"
+      referencedColumns: ["charge_id"]
+    },{
+      foreignKeyName: "payment_allocations_charge_id_fkey"
+      columns: ["charge_id"]
+isOneToOne: false
+      referencedRelation: "charges"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payment_allocations_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: false
+      referencedRelation: "payments"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payments": {
+                  Row: {
+                    "amount": number,"created_by": string | null,"fee": number,"id": string,"installments": number,"method": string,"paid_at": string,"payer_id": string | null,"payer_name": string | null,"provider": string,"provider_ref": string | null,"receipt_no": string,"request_id": string | null,"status": string,"unit_id": string,"unit_label": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"created_by"?: string | null,"fee"?: number,"id"?: string,"installments"?: number,"method": string,"paid_at"?: string,"payer_id"?: string | null,"payer_name"?: string | null,"provider": string,"provider_ref"?: string | null,"receipt_no": string,"request_id"?: string | null,"status"?: string,"unit_id": string,"unit_label": string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"created_by"?: string | null,"fee"?: number,"id"?: string,"installments"?: number,"method"?: string,"paid_at"?: string,"payer_id"?: string | null,"payer_name"?: string | null,"provider"?: string,"provider_ref"?: string | null,"receipt_no"?: string,"request_id"?: string | null,"status"?: string,"unit_id"?: string,"unit_label"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_payer_id_fkey"
+      columns: ["payer_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_voided_by_fkey"
+      columns: ["voided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"email": string | null,"full_name": string | null,"id": string,"is_active": boolean,"kvkk_consent_at": string | null,"kvkk_consent_version": string | null,"notify_prefs": NonNullable<Json>,"phone": string | null,"updated_at": string
@@ -342,11 +412,17 @@ isOneToOne: false
                   ]
                 },"charge_status": {
                   Row: {
-                    "amount": number,"block_name": string | null,"charge_id": string,"charge_type_id": string,"created_at": string,"description": string | null,"door_no": string | null,"due_date": string,"paid_amount": number | null,"period": string | null,"remaining": number | null,"running_balance": number | null,"status": string | null,"type_name": string | null,"unit_id": string
+                    "amount": number,"block_id": string | null,"block_name": string | null,"charge_id": string,"charge_type_id": string,"created_at": string,"description": string | null,"door_no": string | null,"due_date": string,"paid_amount": number | null,"period": string | null,"remaining": number | null,"running_balance": number | null,"site_id": string | null,"status": string | null,"type_name": string | null,"unit_id": string
                   }
                   ComputedFields: never
                   Relationships: [
                     {
+      foreignKeyName: "blocks_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "charges_charge_type_id_fkey"
       columns: ["charge_type_id"]
 isOneToOne: false
@@ -357,6 +433,12 @@ isOneToOne: false
       columns: ["unit_id"]
 isOneToOne: false
       referencedRelation: "units"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "units_block_id_fkey"
+      columns: ["block_id"]
+isOneToOne: false
+      referencedRelation: "blocks"
       referencedColumns: ["id"]
     }
                   ]
@@ -389,9 +471,22 @@ isOneToOne: false
 "generate_recurring_batch":
 { Args: { "p_plan": string }; Returns: string
                            },
+"get_receipt":
+{ Args: { "p_payment": string }; Returns: {
+              "amount_kurus": number,"company_name": string,"fee_kurus": number,"installments": number,"lines": Json,"method": string,"paid_at": string,"payer_name": string,"provider": string,"receipt_no": string,"site_name": string,"status": string,"total_kurus": number,"unit_label": string,"void_reason": string
+            }[]
+                           },
+"pay_charges_mock":
+{ Args: { "p_charge_ids": (string)[],"p_expected_total_kurus": number,"p_installments": number,"p_request_id": string }; Returns: string
+                           },
 "preview_charge_batch":
 { Args: { "p_amount_kurus": number,"p_site": string,"p_split": string,"p_target": Json }; Returns: {
               "amount_kurus": number,"block_name": string,"door_no": string,"unit_id": string,"weight": number
+            }[]
+                           },
+"quote_payment":
+{ Args: { "p_charge_ids": (string)[],"p_installments": number }; Returns: {
+              "amount_kurus": number,"charge_id": string,"description": string,"due_date": string,"fee_kurus": number,"period": string,"total_kurus": number,"type_name": string,"unit_id": string
             }[]
                            },
 "save_recurring_plan":
@@ -408,6 +503,9 @@ isOneToOne: false
                            },
 "void_charge_batch":
 { Args: { "p_batch": string,"p_reason": string }; Returns: undefined
+                           },
+"void_payment":
+{ Args: { "p_payment": string,"p_reason": string }; Returns: undefined
                            }
           }
           Enums: {

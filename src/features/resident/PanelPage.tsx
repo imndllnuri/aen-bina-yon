@@ -1,4 +1,4 @@
-import { Megaphone, Receipt, Wrench } from 'lucide-react'
+import { Megaphone, Wrench } from 'lucide-react'
 import { Link } from 'react-router'
 import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import type { MyUnit } from './api'
 import { BalanceCard } from './components/BalanceCard'
 import { ComingSoonCard } from './components/ComingSoonCard'
 import { LineList } from './components/LineList'
+import { RecentPayments } from './components/RecentPayments'
 import { ResidentGate } from './components/ResidentGate'
 import { firstName, nextThree } from './lib/ledger'
 import { useLedger, useMyName } from './queries'
@@ -36,7 +37,7 @@ function PanelContent({ unit }: { unit: MyUnit }) {
       </section>
 
       <div className="grid gap-3 sm:grid-cols-1">
-        <ComingSoonCard icon={Receipt} title="Son ödemeler" text="Online ödeme açıldığında ödemeleriniz ve makbuzlarınız burada görünecek." />
+        <RecentPayments />
         <ComingSoonCard icon={Megaphone} title="Duyurular" text="Site yönetiminin duyuruları yakında burada olacak." />
         <ComingSoonCard icon={Wrench} title="Taleplerim" text="Arıza ve istek bildirimi yakında burada olacak." />
       </div>

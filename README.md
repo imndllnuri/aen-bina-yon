@@ -41,6 +41,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0002_residents.sql` | `accept_kvkk()`, `set_profile_active()`, guard against archiving occupied units, "end date = day moved out" |
 | `supabase/migrations/0003_charges.sql` | charge types, monthly plans, charge batches, charges, the split function and the charge RPCs (see "Charges" below) |
 | `supabase/migrations/0004_resident_charges.sql` | residents read their own charges: the visibility rule, `charge_status` and `unit_balances` views (see "Resident panel" below) |
+| `supabase/migrations/0005_payments.sql` | payments, allocations, receipt numbers, the mock checkout functions, `get_receipt`, `void_payment`, real paid amounts in the views, guards for paid lines (see "Payments" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -77,7 +78,7 @@ alone, but the generated local defaults would turn hosted MFA and e-mail protect
 ### Hosted project status
 
 - Project `aen-bina-yonetimi` (ref `dogcevoorjlgbmykaqdy`, region eu-west-2). Signups are **off**
-  (invite-only). Migrations `0001` to `0004` and the demo data are applied, and the
+  (invite-only). Migrations `0001` to `0004` and the demo data are applied (`0005` after slice 6 goes online), and the
   `invite-resident` function is deployed.
 - The first admin is made by hand: create a user in the dashboard (Authentication → Users → Add
   user), then run this in the SQL Editor (demo site id from `seed.sql`):
@@ -161,6 +162,39 @@ opening balance, running balance and closing balance; "Yazdır / PDF" uses the b
 - **Not yet (honest "coming soon" states, no dead buttons):** online payment ("Hemen Öde"), "Ödenmiş"
   lines and "Son ödemeler" (slice 6), announcements (slice 8), requests (slice 9). Slice 6 must replace
   the two views (`paid_amount` is 0 now) and extend the guards listed in `0003_charges.sql`.
+
+### Payments and receipts (slice 6)
+
+Resident pages: **Borçlarım** (tick lines, "Seçilenleri Öde"), `/#/odeme` (summary from the database,
+installments, agreement), `/#/odeme/3d` (a FAKE bank screen with "Onayla" and "Başarısız Simüle Et"),
+`/#/odeme/sonuc` (receipt number, "Makbuzu İndir (PDF)") and **Ödemelerim**. Admin page:
+**Tahsilatlar** (all payments, receipts, cancel a payment with a reason).
+
+- **The database computes every amount.** `quote_payment()` returns the lines, the fee and the total;
+  `pay_charges_mock()` is given the total the person saw and refuses (`quote_outdated`) if anything changed.
+  It locks the lines, then re-checks: the caller must be a current, active resident who may SEE every line
+  (the visibility rule of slice 5, so a tenant who guesses the id of a hidden line is refused), lines must be
+  in one unit, not cancelled and not already paid. Admins cannot use it.
+- **No double payment.** A request id per checkout returns the same payment for a double click or a retry.
+- **Receipts.** Numbers look like `MKB-2026-000123` (a sequence, Istanbul year, never reused, even after a
+  cancel). `get_receipt()` reads a stored snapshot (payer name, unit label) after an access check. The PDF is
+  built in the browser (the library and the Noto Sans font are loaded only when somebody asks for a PDF),
+  and a TEST notice is printed on every mock receipt. Check: `pdftotext` and `pdffonts` on a downloaded receipt.
+- **A paid line is part of the books.** Its amount and due date cannot change, it cannot be cancelled, and its
+  operation cannot be undone or deleted. An admin cancels the PAYMENT first (Tahsilatlar): the receipt stays,
+  marked "İPTAL EDİLDİ", and the lines are unpaid again.
+- **Who sees payments.** Admins of the site; the payer; the owners of the unit. A tenant never sees what the
+  owner paid, but sees the line as paid (paid amounts come from a helper, residents never read allocations).
+- **Fee.** 0 by default ("yönetim öder"). The database supports `{"payment": {"commission_payer": "resident",
+  "fee_pct": {"3": 2.5}}}` in `companies.settings` (the Ayarlar page will edit it). Allocations add up to the
+  amount WITHOUT the fee.
+- **SAFETY SWITCH: the mock only works for companies with `{"payment_mode": "mock"}` in their settings**
+  (the demo company has it). A resident can mark their own debt "paid" with the mock without any money moving,
+  so **before real residents and real money exist, switch it off:**
+  `update public.companies set settings = settings - 'payment_mode';` and add the real provider (iyzico).
+- **Not yet:** manual cash / POS entry, refunds, partial payments, overpayment credit (alacak) and the havale
+  approval queue (slice 7), notifications (slice 8), the real provider (later). Mock payments on the hosted
+  project are permanent unless an admin cancels them in Tahsilatlar.
 
 ### Testing the resident panel with your own account
 

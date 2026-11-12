@@ -3,8 +3,9 @@
 -- once (see README). Use DEMO data only: GitHub Pages is a demo host.
 -- Fixed ids make the rows easy to find. This file can be run again safely.
 
-insert into public.companies (id, name)
-values ('00000000-0000-0000-0000-000000000001', '[FİRMA ADI]')
+-- payment_mode "mock": residents of this DEMO company may use the fake checkout (see 0005_payments.sql).
+insert into public.companies (id, name, settings)
+values ('00000000-0000-0000-0000-000000000001', '[FİRMA ADI]', '{"payment_mode": "mock"}')
 on conflict (id) do nothing;
 
 insert into public.sites (id, company_id, name, address, il, ilce)

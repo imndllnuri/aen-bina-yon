@@ -9,10 +9,12 @@ import { AUTH_QUERY_KEY, type AuthState } from '@/lib/auth'
  * `authState` pre-fills the "who is logged in" cache, so a test starts as that person
  * without talking to Supabase.
  */
-export function renderRoutes(routes: RouteObject[], options: { path: string; authState?: AuthState }) {
+export function renderRoutes(routes: RouteObject[], options: { path: string; authState?: AuthState; /** The router state of the first page (like `navigate(path, { state })`). */ state?: unknown }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
   if (options.authState) queryClient.setQueryData(AUTH_QUERY_KEY, options.authState)
-  const router = createMemoryRouter(routes, { initialEntries: [options.path] })
+  const [pathname, search = ''] = options.path.split('?')
+  const entry = options.state === undefined ? options.path : { pathname, search: search ? `?${search}` : '', state: options.state }
+  const router = createMemoryRouter(routes, { initialEntries: [entry] })
   render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />

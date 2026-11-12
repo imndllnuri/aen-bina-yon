@@ -39,7 +39,7 @@ const demirbas: ChargeTypeRow = { id: 't2', code: 'demirbas', name: 'Demirbaş',
 const charge = (over: Partial<ChargeRow>): ChargeRow => ({
   id: 'c1', unitId: 'u1', blockId: 'b1', blockName: 'A Blok', doorNo: '1', typeId: 't1', typeName: 'Aidat', batchId: 'bt1',
   period: '2026-11-01', description: null, amountKurus: 150000, dueDate: '2026-11-30', tenantVisible: true,
-  createdAt: '2026-11-08T10:00:00Z', voidedAt: null, voidReason: null, ...over,
+  createdAt: '2026-11-08T10:00:00Z', voidedAt: null, voidReason: null, paidKurus: 0, status: 'open', ...over,
 })
 const lines: PreviewLine[] = [
   { unitId: 'u1', blockName: 'A Blok', doorNo: '1', weight: null, amountKurus: 150000 },
@@ -68,8 +68,8 @@ beforeEach(() => {
   api.fetchCharges.mockResolvedValue({
     rows: [
       charge({ id: 'c1' }),
-      charge({ id: 'c2', unitId: 'u2', doorNo: '2', dueDate: '2026-11-05', description: 'Kasım aidatı' }),
-      charge({ id: 'c3', unitId: 'u9', blockId: 'b2', blockName: 'B Blok', doorNo: '9', voidedAt: '2026-11-08T12:00:00Z', voidReason: 'Yanlış daire' }),
+      charge({ id: 'c2', unitId: 'u2', doorNo: '2', dueDate: '2026-11-05', description: 'Kasım aidatı', status: 'overdue' }),
+      charge({ id: 'c3', unitId: 'u9', blockId: 'b2', blockName: 'B Blok', doorNo: '9', voidedAt: '2026-11-08T12:00:00Z', voidReason: 'Yanlış daire', status: 'voided' }),
     ],
     truncated: false,
   })
@@ -133,6 +133,17 @@ describe('Borçlar (the charge lines)', () => {
     await user.clear(screen.getByLabelText('Ara'))
     await user.type(screen.getByLabelText('Ara'), 'yakıt')
     expect(screen.getByText(/borç yok/)).toBeInTheDocument()
+  })
+
+  it('shows a paid line as "Ödendi" and offers no edit or cancel for it ("Ödeme alınmış")', async () => {
+    api.fetchCharges.mockResolvedValue({ rows: [charge({ id: 'c1', status: 'paid', paidKurus: 150000 }), charge({ id: 'c2', unitId: 'u2', doorNo: '2' })], truncated: false })
+    open()
+    await screen.findByText('A Blok · 1')
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(within(rows[0]).getByText('Ödendi')).toBeInTheDocument()
+    expect(within(rows[0]).getByText('Ödeme alınmış')).toBeInTheDocument()
+    expect(within(rows[0]).queryByRole('button')).not.toBeInTheDocument()
+    expect(within(rows[1]).getByRole('button', { name: 'A Blok 2 için işlemler' })).toBeInTheDocument() // an unpaid line keeps its menu
   })
 
   it('warns when the list was cut off', async () => {

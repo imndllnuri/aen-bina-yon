@@ -11,7 +11,7 @@ import { createChargeBatch, type AdminSite, type BlockRow, type ChargeTypeRow, t
 import { chargeErrorMessage, currentMonthIstanbul, dueDateFor } from '../lib/charges'
 import { kurusOf, singleChargeSchema, type SingleChargeValues } from '../lib/charge-schemas'
 import { formatKurus } from '@/lib/money'
-import { createRequestIds } from '../lib/request-ids'
+import { createRequestIds } from '@/lib/request-ids'
 import { ChargeFields, type DetailsShape } from './ChargeFields'
 import { FormError } from '@/components/StateBlocks'
 

@@ -112,8 +112,108 @@ export async function fetchLedger(unitId: string): Promise<LedgerLine[]> {
     paidKurus: toKurus(row.paid_amount ?? 0),
     remainingKurus: toKurus(row.remaining ?? 0),
     dueDate: row.due_date ?? '',
-    status: (row.status === 'overdue' ? 'overdue' : 'open') as LineStatus,
+    status: (['overdue', 'partial', 'paid'].includes(row.status ?? '') ? row.status : 'open') as LineStatus,
     createdAt: row.created_at ?? '',
     runningKurus: toKurus(row.running_balance ?? 0),
   }))
 }
+
+// ---------------------------------------------------------------------------
+// Paying (mock checkout, plan section 12). The DATABASE computes every amount; the browser only
+// shows the quote and sends back the total it saw, so a changed total is refused.
+// ---------------------------------------------------------------------------
+export interface QuoteLine {
+  chargeId: string
+  typeName: string | null
+  description: string | null
+  period: string | null
+  dueDate: string
+  amountKurus: number
+}
+
+export interface Quote {
+  unitId: string
+  lines: QuoteLine[]
+  principalKurus: number
+  feeKurus: number
+  totalKurus: number
+}
+
+export async function quotePayment(chargeIds: string[], installments: number): Promise<Quote> {
+  const { data, error } = await client().rpc('quote_payment', { p_charge_ids: chargeIds, p_installments: installments })
+  if (error) throw error
+  if (data.length === 0) throw new Error('empty quote')
+  return {
+    unitId: data[0].unit_id,
+    lines: data.map((row) => ({
+      chargeId: row.charge_id,
+      typeName: row.type_name,
+      description: row.description,
+      period: row.period,
+      dueDate: row.due_date,
+      amountKurus: row.amount_kurus,
+    })),
+    principalKurus: data.reduce((total, row) => total + row.amount_kurus, 0),
+    feeKurus: data[0].fee_kurus,
+    totalKurus: data[0].total_kurus,
+  }
+}
+
+export interface PayInput {
+  /** One random id per checkout visit: a double click or a retry returns the same payment. */
+  requestId: string
+  chargeIds: string[]
+  installments: number
+  expectedTotalKurus: number
+}
+
+/** The mock provider: "Onayla" on the fake 3D Secure screen. Returns the payment id. */
+export async function payMock(input: PayInput): Promise<string> {
+  const { data, error } = await client().rpc('pay_charges_mock', {
+    p_request_id: input.requestId,
+    p_charge_ids: input.chargeIds,
+    p_installments: input.installments,
+    p_expected_total_kurus: input.expectedTotalKurus,
+  })
+  if (error) throw error
+  return data
+}
+
+export interface PaymentRow {
+  id: string
+  receiptNo: string
+  paidAt: string
+  amountKurus: number
+  feeKurus: number
+  method: string
+  status: 'approved' | 'voided'
+  installments: number
+  unitLabel: string
+  payerName: string | null
+  mine: boolean
+}
+
+/** The payments this person may see: their own, and (for an owner) every payment of the unit. */
+export async function fetchMyPayments(userId: string): Promise<PaymentRow[]> {
+  const { data, error } = await client()
+    .from('payments')
+    .select('id, receipt_no, paid_at, amount, fee, method, status, installments, unit_label, payer_name, payer_id')
+    .order('paid_at', { ascending: false })
+    .limit(200)
+  if (error) throw error
+  return data.map((row) => ({
+    id: row.id,
+    receiptNo: row.receipt_no,
+    paidAt: row.paid_at,
+    amountKurus: toKurus(row.amount),
+    feeKurus: toKurus(row.fee),
+    method: row.method,
+    status: row.status === 'voided' ? 'voided' : 'approved',
+    installments: row.installments,
+    unitLabel: row.unit_label,
+    payerName: row.payer_name,
+    mine: row.payer_id === userId,
+  }))
+}
+
+
