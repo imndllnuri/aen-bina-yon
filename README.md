@@ -274,7 +274,45 @@ too: `/#/yonetim/bildirimler`), with the unread number. The home page shows the 
 - **No backfill.** The charges and payments that existed before this migration created no notifications.
 - **Not built (named on purpose):** rich text, attachments, templates, e-mail / SMS / push, reminders ("3 days left", "overdue":
   they need a scheduler), Realtime (the bell asks again every minute and when the window gets focus), notification preferences
-  (Profilim), request events (slice 9), cleaning up old notifications.
+  (Profilim), cleaning up old notifications. (Request events were added in slice 9.)
+
+### Requests: Talepler (slice 9)
+
+Resident pages: **Taleplerim** (`/#/taleplerim`: "Devam edenler" and "Tamamlananlar"), **Yeni talep** (`/#/taleplerim/yeni`: category,
+title, text, priority, place, up to 3 photos) and one page per request (`/#/taleplerim/<id>`: the five steps with the history, the
+comment thread, edit and cancel while "Açık", a 1-5 rating after "Çözüldü"). The home page has a "Taleplerim" card with "Arıza bildir".
+Admin page: **Talepler** (`/#/yonetim/talepler`: list or board, filters, an "is it late?" badge, "Telefonla talep aç") and one page per
+request (`/#/yonetim/talepler/<id>`: status, category and priority, comments and **internal notes**, the history with names).
+
+- **Who sees a request:** the person it belongs to (`requester_id`) while they still live in the unit, and the admins of the site.
+  Other people of the same unit do **not** see it ("Taleplerim" = my requests). An admin can open a request for a resident (a phone
+  call): then `created_by` is the admin and `requester_id` is the resident, who is told about it.
+- **Nobody writes the tables from the browser.** Seven checked functions: `create_request`, `update_request`, `cancel_request`
+  (resident), `set_request_status`, `set_request_triage` (admin), `add_request_comment` (both), `rate_request` (resident). Each one
+  checks the caller inside and answers with a short code that the app turns into Turkish.
+- **The steps:** Açık → İnceleniyor → İşlemde → Çözüldü → Kapandı (`iptal` is a side road: only the resident cancels, only while
+  "Açık"). An admin can move to any step; moving a solved request back to an open step is a "reopen" (the time of the solution and the
+  rating belong to the old solution and are cleared). The **timeline is written by a trigger**, so it can never differ from the real
+  status.
+- **Internal notes stay inside** (`request_comments.is_internal`): the read policy hides them from the requester, a resident cannot ask
+  for one (refused), an internal note never creates a notification, and the browser never asks for them in the resident view. Each of
+  these four ways is tested, and has a deliberate-break test.
+- **Photos** go into the private bucket `talep-fotolari` (`<unit id>/<uuid>.jpg|png|webp`, 5 MB, no delete or update policy). The
+  browser **shrinks every photo to at most 1600 px and re-draws it as a JPEG**, which also removes the hidden place data (GPS in the
+  EXIF block) a phone writes into a photo. If a picture cannot be re-drawn it is **not** sent. The database checks that each path exists
+  in the bucket, was uploaded by the caller, is in the folder of that unit, and is not used by another request. Photos open through
+  5-minute signed links; a resident can read a photo that an admin uploaded for them (the read policy goes through the request).
+- **Notifications** (written only by triggers, never able to make a request fail): a new request -> the admins (not the one who typed
+  it); a status change or a public answer of an admin -> the person the request belongs to; a comment of the resident -> the admins. One
+  notification per EVENT (the timeline row or the comment), so a second status change is never swallowed by the first. A cancelled
+  request, or one that somebody handled, removes the admins' unread "new request".
+- **Limits:** 10 open requests per unit, 3 photos, title 3-120, text 3-2000, comment 2000 characters. Plain text everywhere.
+- **"Late" badge:** computed in the browser from the age and the priority (urgent 1 day, high 3, normal 7, low 14). It is a default,
+  not a promise; real SLA settings come with the Ayarlar screen (slice 10).
+- **Not built (named on purpose):** assignee (needs the Görevli role of Faz 2), merging duplicates, request numbers, adding photos or
+  comments with photos after the request exists, e-mail / SMS, cleaning up photos of cancelled requests, editing the category list
+  (slice 10), a counter on the admin dashboard (slice 10). Photos can show people and the inside of a home: the KVKK text must cover them
+  and say how long they are kept.
 
 ### Testing havale notices on the hosted demo
 

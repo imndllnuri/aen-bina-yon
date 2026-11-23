@@ -10,7 +10,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(288);
+select plan(304);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -150,10 +150,10 @@ delete from public.notifications;
 -- ---------------------------------------------------------------------------
 select ok((select bool_and(relrowsecurity) from pg_class where oid in ('public.requests'::regclass, 'public.request_events'::regclass, 'public.request_comments'::regclass, 'public.request_photos'::regclass)),
   'all four new tables have row security');
-select ok(not has_table_privilege('authenticated', 'public.requests', 'insert') and not has_table_privilege('authenticated', 'public.requests', 'update') and not has_table_privilege('authenticated', 'public.requests', 'delete')
-      and not has_table_privilege('authenticated', 'public.request_events', 'insert') and not has_table_privilege('authenticated', 'public.request_events', 'update') and not has_table_privilege('authenticated', 'public.request_events', 'delete')
-      and not has_table_privilege('authenticated', 'public.request_comments', 'insert') and not has_table_privilege('authenticated', 'public.request_comments', 'update') and not has_table_privilege('authenticated', 'public.request_comments', 'delete')
-      and not has_table_privilege('authenticated', 'public.request_photos', 'insert') and not has_table_privilege('authenticated', 'public.request_photos', 'update') and not has_table_privilege('authenticated', 'public.request_photos', 'delete'),
+select ok(not has_any_column_privilege('authenticated', 'public.requests', 'insert') and not has_any_column_privilege('authenticated', 'public.requests', 'update') and not has_table_privilege('authenticated', 'public.requests', 'delete')
+      and not has_any_column_privilege('authenticated', 'public.request_events', 'insert') and not has_any_column_privilege('authenticated', 'public.request_events', 'update') and not has_table_privilege('authenticated', 'public.request_events', 'delete')
+      and not has_any_column_privilege('authenticated', 'public.request_comments', 'insert') and not has_any_column_privilege('authenticated', 'public.request_comments', 'update') and not has_table_privilege('authenticated', 'public.request_comments', 'delete')
+      and not has_any_column_privilege('authenticated', 'public.request_photos', 'insert') and not has_any_column_privilege('authenticated', 'public.request_photos', 'update') and not has_table_privilege('authenticated', 'public.request_photos', 'delete'),
   'nobody writes any of the four tables from a browser');
 select ok(not has_table_privilege('anon', 'public.requests', 'select') and not has_table_privilege('anon', 'public.request_events', 'select')
       and not has_table_privilege('anon', 'public.request_comments', 'select') and not has_table_privilege('anon', 'public.request_photos', 'select'),
@@ -689,6 +689,11 @@ select is(tt.nots('TA', 'request_status'), 2, 'the tenant was told (the "opened 
 select pg_temp.act_as(tt.u('OA'));
 select throws_ok($$select public.rate_request(tt.rid(10), 5)$$, '42501', 'not allowed', 'the owner cannot rate the tenant''s request');
 reset role;
+update public.unit_residents set end_date = tt.today() where profile_id = tt.u('TA') and unit_id = tt.unit('1');
+select pg_temp.act_as(tt.u('TA'));
+select throws_ok($$select public.rate_request(tt.rid(10), 5)$$, '42501', 'not allowed', 'a tenant who moved out can no longer rate their request');
+reset role;
+update public.unit_residents set end_date = null where profile_id = tt.u('TA') and unit_id = tt.unit('1');
 select pg_temp.act_as(tt.u('TA'));
 select lives_ok($$select public.rate_request(tt.rid(10), 5)$$, 'the tenant rates it');
 select lives_ok($$select public.add_request_comment(tt.rid(10), 'Çözüldü, sağ olun', false)$$, 'a resident can still comment on a SOLVED request (it is not closed)');
@@ -709,6 +714,45 @@ reset role;
 select is(tt.status(40), 'inceleniyor', 'the status really changed');
 select is(tt.events(40), 'created:>acik: status:acik>inceleniyor:', '...and the timeline too');
 alter table public.notifications drop constraint zz_always_fails;
+
+-- ---------------------------------------------------------------------------
+-- 13b. A cancelled request takes the admins' unread notifications about it with it
+-- ---------------------------------------------------------------------------
+select pg_temp.act_as(tt.u('OA'));
+select isnt(tt.mk(50, '1', 'İptal edilecek yorumlu talep'), null, 'request 50 is opened');
+select lives_ok($$select public.add_request_comment(tt.rid(50), 'Bir yorum yazıyorum', false)$$, '...and commented');
+reset role;
+select is((select count(*)::int from public.notifications where read_at is null and kind in ('request_new', 'request_comment') and link = '/yonetim/talepler/' || tt.rid(50)::text), 4, 'the two admins have two unread notifications each (new request + comment)');
+select pg_temp.act_as(tt.u('OA'));
+select lives_ok($$select public.cancel_request(tt.rid(50))$$, 'the owner cancels it');
+reset role;
+select is((select count(*)::int from public.notifications where kind in ('request_new', 'request_comment') and link = '/yonetim/talepler/' || tt.rid(50)::text), 0, '...and ALL of those unread notifications are gone (the request does not exist for the admins any more)');
+select is((select count(*)::int from public.notifications where kind in ('request_new', 'request_comment') and read_at is not null and link = '/yonetim/talepler/' || tt.rid(1)::text), 0, '(control: nothing else was touched)');
+
+-- ---------------------------------------------------------------------------
+-- 13c. A broken helper or a broken delete inside the notification code must not stop a request, a comment or a status change
+-- ---------------------------------------------------------------------------
+select pg_temp.act_as(tt.u('OA'));
+select isnt(tt.mk(41, '1', 'Yardımcı bozulmadan açıldı'), null, 'request 41 is opened normally (its admin notifications exist)');
+reset role;
+select is((select count(*)::int from public.notifications where kind = 'request_new' and link = '/yonetim/talepler/' || tt.rid(41)::text), 2, '...two admins were told');
+-- break the label helper (it is used inside the notification block of a new request and of a resident comment)
+create or replace function private.unit_label(p_unit uuid) returns text language plpgsql as $$ begin raise exception 'unit_label is broken on purpose'; end; $$;
+select pg_temp.act_as(tt.u('OA'));
+select lives_ok($$select tt.mk(42, '1', 'Yardımcı bozukken açıldı')$$, 'a request is still saved when the label helper breaks');
+select lives_ok($$select public.add_request_comment(tt.rid(41), 'Yardımcı bozukken yazıldı', false)$$, '...and a resident comment');
+reset role;
+select is(tt.status(42), 'acik', 'request 42 exists');
+select is((select count(*)::int from public.request_comments where request_id = tt.rid(41) and body = 'Yardımcı bozukken yazıldı'), 1, 'the comment exists');
+-- break the delete of the stale "new request" notification
+create function tt.boom() returns trigger language plpgsql as $$ begin raise exception 'delete is broken on purpose'; end; $$;
+create trigger zz_boom before delete on public.notifications for each row execute function tt.boom();
+select pg_temp.act_as(tt.u('AA'));
+select lives_ok($$select public.set_request_status(tt.rid(41), 'inceleniyor')$$, 'a status change is still saved when removing the stale notification fails');
+reset role;
+select is(tt.status(41), 'inceleniyor', 'the status really changed');
+select is(tt.events(41), 'created:>acik: status:acik>inceleniyor:', '...and the timeline too');
+drop trigger zz_boom on public.notifications;
 
 -- ---------------------------------------------------------------------------
 -- 14. Other rules

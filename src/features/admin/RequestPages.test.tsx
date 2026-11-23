@@ -197,6 +197,9 @@ describe('Telefonla talep aç', () => {
     await user.selectOptions(within(dialog).getByLabelText(/Arayan kişi/), 'p1')
     await user.selectOptions(within(dialog).getByLabelText(/^Daire/), 'u2')
     expect(within(dialog).getByLabelText(/Arayan kişi/)).toHaveValue('')
+    // ...and it stays cleared when the person goes back to the first unit (the old person was forgotten, not just hidden)
+    await user.selectOptions(within(dialog).getByLabelText(/^Daire/), 'u1')
+    expect(within(dialog).getByLabelText(/Arayan kişi/)).toHaveValue('')
   })
 
   it('opens the request for the chosen person (the admin is not the requester) and goes to its page', async () => {

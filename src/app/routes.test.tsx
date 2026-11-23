@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { createMemoryRouter } from 'react-router'
+import { createMemoryRouter, matchRoutes } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { describe, expect, it } from 'vitest'
 import { AppProviders } from '@/app/providers'
@@ -49,5 +49,25 @@ describe('routes', () => {
   it('shows a 404 page for unknown addresses', () => {
     renderAt('/yok-boyle-bir-sayfa')
     expect(screen.getByRole('heading', { name: 'Sayfa bulunamadı' })).toBeInTheDocument()
+  })
+
+  it.each([
+    ['/taleplerim', '/taleplerim'],
+    ['/taleplerim/yeni', '/taleplerim/yeni'],
+    ['/taleplerim/3f2b8c1e-aaaa-bbbb-cccc-123456789012', '/taleplerim/:id'],
+    ['/yonetim/talepler', 'talepler'],
+    ['/yonetim/talepler/3f2b8c1e-aaaa-bbbb-cccc-123456789012', 'talepler/:id'],
+  ])('has its own page for the request address %s (not a placeholder, not "not found")', (path, route) => {
+    const matches = matchRoutes(routes, path)
+    expect(matches?.at(-1)?.route.path).toBe(route)
+    expect(matches?.at(-1)?.route.element).toBeDefined()
+    // the page is a real component, not the generic placeholder
+    expect((matches?.at(-1)?.route.element as { type: { name?: string } }).type.name).not.toBe('PlaceholderPage')
+  })
+
+  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc'])('sends a logged-out visitor from %s to the login page', async (path) => {
+    const router = renderAt(path)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Giriş yap' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/giris')
   })
 })

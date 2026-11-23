@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RequestDetail, RequestListItem } from '@/features/requests/api'
 import { renderRoutes, signedInState } from '@/test/render'
 import type { MyUnit } from './api'
+import { OpenRequests } from './components/OpenRequests'
 import { RequestCreatePage } from './RequestCreatePage'
 import { RequestDetailPage } from './RequestDetailPage'
 import { RequestsPage } from './RequestsPage'
@@ -309,5 +310,43 @@ describe('A request of the person', () => {
     const link = screen.getByRole('link', { name: 'Fotoğraf 1, tam boyutta aç' })
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+  })
+})
+
+describe('the home page card "Taleplerim"', () => {
+  const card = () => renderRoutes([{ path: '/panel', element: <OpenRequests unitId="u1" /> }], { path: '/panel', authState: signedInState(['resident']) })
+
+  it('lists the requests that are still open for THIS unit (at most three), each with its status and a link', async () => {
+    requests.fetchMyRequests.mockResolvedValue([
+      item({ id: 'r6', title: 'Başka daire', unitId: 'u2', status: 'acik' }), // first in the list: it would show if the unit were not checked
+      item({ id: 'r5', title: 'Çözülmüş olan', status: 'cozuldu' }),
+      item({ id: 'r1', title: 'Birinci', status: 'acik' }),
+      item({ id: 'r2', title: 'İkinci', status: 'islemde' }),
+      item({ id: 'r3', title: 'Üçüncü', status: 'inceleniyor' }),
+      item({ id: 'r4', title: 'Dördüncü', status: 'acik' }),
+    ])
+    card()
+    expect(await screen.findByRole('link', { name: 'Birinci' })).toHaveAttribute('href', '/taleplerim/r1')
+    expect(screen.getByText('İkinci')).toBeInTheDocument()
+    expect(screen.getByText('Üçüncü')).toBeInTheDocument()
+    expect(screen.queryByText('Dördüncü')).not.toBeInTheDocument() // only the latest three
+    expect(screen.queryByText('Çözülmüş olan')).not.toBeInTheDocument()
+    expect(screen.queryByText('Başka daire')).not.toBeInTheDocument()
+    expect(screen.getByText('İşlemde')).toBeInTheDocument()
+  })
+
+  it('says there is nothing open, and still offers "Arıza bildir" and "Tümünü gör"', async () => {
+    requests.fetchMyRequests.mockResolvedValue([item({ status: 'kapandi' })])
+    card()
+    expect(await screen.findByText('Devam eden talebiniz yok.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Arıza bildir' })).toHaveAttribute('href', '/taleplerim/yeni')
+    expect(screen.getByRole('link', { name: 'Tümünü gör' })).toHaveAttribute('href', '/taleplerim')
+  })
+
+  it('says so when the requests cannot be loaded (and does not claim there are none)', async () => {
+    requests.fetchMyRequests.mockRejectedValue(new Error('boom'))
+    card()
+    expect(await screen.findByText('Talepleriniz şu anda yüklenemedi.')).toBeInTheDocument()
+    expect(screen.queryByText('Devam eden talebiniz yok.')).not.toBeInTheDocument()
   })
 })

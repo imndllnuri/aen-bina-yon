@@ -177,7 +177,7 @@ select 'dekontlar', tt.fp('1', 100 + g), 'b1000000-0000-0000-0000-000000000001' 
 -- 1. Structure and permissions
 -- ---------------------------------------------------------------------------
 select ok((select relrowsecurity from pg_class where oid = 'public.transfer_notices'::regclass), 'transfer_notices has row security');
-select ok(not has_table_privilege('authenticated', 'public.transfer_notices', 'insert') and not has_table_privilege('authenticated', 'public.transfer_notices', 'update')
+select ok(not has_any_column_privilege('authenticated', 'public.transfer_notices', 'insert') and not has_any_column_privilege('authenticated', 'public.transfer_notices', 'update')
       and not has_table_privilege('authenticated', 'public.transfer_notices', 'delete') and not has_table_privilege('anon', 'public.transfer_notices', 'select'),
   'nobody writes notices directly and a visitor reads none');
 select ok(has_column_privilege('authenticated', 'public.transfer_notices', 'status', 'select')

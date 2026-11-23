@@ -132,9 +132,9 @@ delete from public.notifications; -- the fixture lines above created some: every
 -- ---------------------------------------------------------------------------
 select ok((select bool_and(relrowsecurity) from pg_class where oid in ('public.notifications'::regclass, 'public.announcements'::regclass, 'public.announcement_recipients'::regclass, 'public.announcement_reads'::regclass)),
   'all four new tables have row security');
-select ok(not has_table_privilege('authenticated', 'public.notifications', 'insert') and not has_table_privilege('authenticated', 'public.announcements', 'insert')
-      and not has_table_privilege('authenticated', 'public.announcements', 'update') and not has_table_privilege('authenticated', 'public.announcements', 'delete')
-      and not has_table_privilege('authenticated', 'public.announcement_reads', 'insert') and not has_table_privilege('authenticated', 'public.announcement_recipients', 'select'),
+select ok(not has_any_column_privilege('authenticated', 'public.notifications', 'insert') and not has_any_column_privilege('authenticated', 'public.announcements', 'insert')
+      and not has_any_column_privilege('authenticated', 'public.announcements', 'update') and not has_table_privilege('authenticated', 'public.announcements', 'delete')
+      and not has_any_column_privilege('authenticated', 'public.announcement_reads', 'insert') and not has_table_privilege('authenticated', 'public.announcement_recipients', 'select'),
   'nobody writes notifications, announcements or reads from a browser, and nobody reads the recipient list directly');
 select ok(not has_table_privilege('anon', 'public.notifications', 'select') and not has_table_privilege('anon', 'public.announcements', 'select') and not has_table_privilege('anon', 'public.announcement_reads', 'select'),
   'a visitor reads none of them');

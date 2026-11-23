@@ -59,17 +59,66 @@ export interface PhotoShrinker {
   (file: Blob): Promise<Blob | null>
 }
 
-/** The real shrinker: decode (keeping the right way up), draw on a white sheet, save as JPEG. Null when it cannot. */
-export const shrinkWithCanvas: PhotoShrinker = async (file) => {
-  if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') return null
-  let bitmap: ImageBitmap
+/** A picture opened in the browser, ready to be drawn. `release` frees what the browser holds for it. */
+interface Decoded {
+  source: CanvasImageSource
+  width: number
+  height: number
+  release: () => void
+}
+
+/**
+ * Way 1: a plain <img>. Every browser can do this, and every modern browser turns the picture the right way up by itself
+ * (a phone writes "rotate me" into the photo instead of rotating the pixels). Safari on an iPhone is the one to think about.
+ */
+async function decodeWithImage(file: Blob): Promise<Decoded | null> {
+  if (typeof Image === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return null
+  const url = URL.createObjectURL(file)
+  const release = () => URL.revokeObjectURL(url)
   try {
-    bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+    const image = new Image()
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('image could not be decoded'))
+      image.src = url
+    })
+    if (!image.naturalWidth || !image.naturalHeight) {
+      release()
+      return null
+    }
+    return { source: image, width: image.naturalWidth, height: image.naturalHeight, release }
   } catch {
+    release()
     return null
   }
+}
+
+/** Way 2, when <img> cannot: createImageBitmap. Older browsers do not know the "from-image" option, so it is tried without it too. */
+async function decodeWithBitmap(file: Blob): Promise<Decoded | null> {
+  if (typeof createImageBitmap !== 'function') return null
+  const open = async (): Promise<ImageBitmap | null> => {
+    try {
+      return await createImageBitmap(file, { imageOrientation: 'from-image' })
+    } catch {
+      try {
+        return await createImageBitmap(file)
+      } catch {
+        return null
+      }
+    }
+  }
+  const bitmap = await open()
+  if (!bitmap) return null
+  return { source: bitmap, width: bitmap.width, height: bitmap.height, release: () => bitmap.close() }
+}
+
+/** The real shrinker: open the picture (keeping it the right way up), draw it on a white sheet, save it as a JPEG. Null when it cannot. */
+export const shrinkWithCanvas: PhotoShrinker = async (file) => {
+  if (typeof document === 'undefined') return null
+  const decoded = (await decodeWithImage(file)) ?? (await decodeWithBitmap(file))
+  if (!decoded) return null
   try {
-    const { width, height } = fitSize(bitmap.width, bitmap.height)
+    const { width, height } = fitSize(decoded.width, decoded.height)
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
@@ -77,10 +126,12 @@ export const shrinkWithCanvas: PhotoShrinker = async (file) => {
     if (!context) return null
     context.fillStyle = '#ffffff' // a transparent PNG must not turn black
     context.fillRect(0, 0, width, height)
-    context.drawImage(bitmap, 0, 0, width, height)
+    context.drawImage(decoded.source, 0, 0, width, height)
     return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY))
+  } catch {
+    return null
   } finally {
-    bitmap.close()
+    decoded.release()
   }
 }
 
