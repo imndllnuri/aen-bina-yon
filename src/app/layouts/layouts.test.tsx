@@ -33,6 +33,11 @@ describe('AdminLayout', () => {
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument()
     expect(screen.getByText('sayfa içeriği')).toBeInTheDocument()
   })
+
+  it('has the bell in the header, pointing to the admin\'s own Bildirimler page', () => {
+    mountLayout(<AdminLayout />, '/yonetim/daireler')
+    expect(screen.getByRole('link', { name: 'Bildirimler' })).toHaveAttribute('href', '/yonetim/bildirimler')
+  })
 })
 
 describe('ResidentLayout', () => {
@@ -45,5 +50,16 @@ describe('ResidentLayout', () => {
     const sidebar = screen.getByRole('navigation', { name: 'Ana menü' })
     expect(within(sidebar).getAllByRole('link')).toHaveLength(8)
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument()
+  })
+
+  it('has the bell in the header on every screen size (the phone bar has only five fixed tabs)', () => {
+    mountLayout(<ResidentLayout />, '/borclarim')
+    const bell = screen.getByRole('link', { name: 'Bildirimler' })
+    expect(bell).toHaveAttribute('href', '/bildirimler')
+    expect(bell.closest('header')).not.toBeNull()
+    // not inside anything that is hidden on small screens (a plain "hidden" class, or "max-md:hidden")
+    for (let el: HTMLElement | null = bell; el; el = el.parentElement) {
+      expect(el.classList.contains('hidden') || el.classList.contains('max-md:hidden') || el.classList.contains('max-sm:hidden')).toBe(false)
+    }
   })
 })

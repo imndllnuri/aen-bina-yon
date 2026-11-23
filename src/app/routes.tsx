@@ -6,12 +6,15 @@ import { PlaceholderPage } from '@/components/PlaceholderPage'
 import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
 import { SetPassword } from '@/features/auth/SetPassword'
+import { AdminAnnouncementsPage } from '@/features/admin/AnnouncementsPage'
 import { BorclandirmaPage } from '@/features/admin/BorclandirmaPage'
 import { AdminPaymentsPage } from '@/features/admin/PaymentsPage'
 import { ResidentsPage } from '@/features/admin/ResidentsPage'
 import { TransferApprovalsPage } from '@/features/admin/TransferApprovalsPage'
 import { UnitsPage } from '@/features/admin/UnitsPage'
 import { NotFound } from '@/features/NotFound'
+import { NotificationsPage } from '@/features/notifications/NotificationsPage'
+import { AnnouncementsPage } from '@/features/resident/AnnouncementsPage'
 import { CheckoutPage } from '@/features/resident/CheckoutPage'
 import { DebtsPage } from '@/features/resident/DebtsPage'
 import { PanelPage } from '@/features/resident/PanelPage'
@@ -63,7 +66,8 @@ export const routes: RouteObject[] = [
       { path: '/odeme/sonuc', element: <PaymentResultPage /> },
       { path: '/odemelerim', element: <PaymentsPage /> },
       { path: '/havale-bildirimi', element: <TransferNoticePage /> },
-      { path: '/duyurular', element: page('Duyurular') },
+      { path: '/duyurular', element: <AnnouncementsPage /> },
+      { path: '/bildirimler', element: <NotificationsPage /> },
       { path: '/taleplerim', element: page('Taleplerim') },
       { path: '/profil', element: page('Profil') },
     ],
@@ -82,7 +86,8 @@ export const routes: RouteObject[] = [
       { path: 'borclandirma', element: <BorclandirmaPage /> },
       { path: 'tahsilatlar', element: <AdminPaymentsPage /> },
       { path: 'havale-onaylari', element: <TransferApprovalsPage /> },
-      { path: 'duyurular', element: page('Duyurular') },
+      { path: 'duyurular', element: <AdminAnnouncementsPage /> },
+      { path: 'bildirimler', element: <NotificationsPage /> },
       { path: 'talepler', element: page('Talepler') },
       { path: 'teklif-talepleri', element: page('Teklif Talepleri') },
       { path: 'raporlar', element: page('Raporlar') },

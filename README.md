@@ -43,6 +43,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0004_resident_charges.sql` | residents read their own charges: the visibility rule, `charge_status` and `unit_balances` views (see "Resident panel" below) |
 | `supabase/migrations/0005_payments.sql` | payments, allocations, receipt numbers, the mock checkout functions, `get_receipt`, `void_payment`, real paid amounts in the views, guards for paid lines (see "Payments" below) |
 | `supabase/migrations/0006_transfers.sql` | havale notices, the private `dekontlar` bucket, manual payments, the allocation engine, bank accounts, one visibility rule for "who may pay which line" (see "Havale notices and manual payments" below) |
+| `supabase/migrations/0007_announcements.sql` | announcements (plain text), who-gets-it targets, recipients, read receipts, the bell (`notifications`) and the triggers that ring it (see "Announcements and the bell" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -238,6 +239,42 @@ facts, approve / reject, and the bank accounts residents see) and, in **Tahsilat
 - **Left for slice 8 (notifications):** "new notice" for admins, "approved / rejected" for the resident. Until
   then the resident reads the state and the reject reason on Havale Bildir and Ödemelerim. Left for slice 10:
   the audit log entries, a settings screen for bank accounts, deleting old files of rejected notices.
+
+### Announcements and the bell (slice 8)
+
+Resident pages: **Duyurular** (`/#/duyurular`: current and archive tabs, type chips, unread in bold with a dot, open = read),
+**Bildirimler** (`/#/bildirimler`: the bell feed with "mark all read" and delete) and a **bell** in the header of every page (admin
+too: `/#/yonetim/bildirimler`), with the unread number. The home page shows the latest announcements. Admin page: **Duyurular**
+(`/#/yonetim/duyurular`): write, schedule, publish, take back, delete, read report, "Okumayanlara tekrar gönder".
+
+- **Who gets an announcement = a scope and an audience.** Scope: whole site, some blocks, some units, or named persons. Audience:
+  everybody, owners only, tenants only, or "borçlular". Only current, active residents are picked (not people who moved out,
+  not deactivated accounts). The admin sees the recipient count BEFORE publishing (the preview and publish use one resolver,
+  `private.audience`).
+- **"Borçlu" means the person sees an open line.** The visibility rule of slice 5 decides, so a tenant is never picked because
+  of an owner-only line.
+- **The recipients are fixed when it is published** (`announcement_recipients`). The same rows decide who may read it, who is
+  notified and who is in the read report, so the counts always match. Publishing again only adds people who joined the target
+  meanwhile; nobody is notified twice.
+- **A resident reads only what was sent to them,** once it is published and started, and only while they still live on the
+  site. Residents can never read the target (it can list other people), the author, the counters or the recipient list: column
+  grants, no policy at all on the recipients table. Nobody writes announcements, reads or notifications from the browser.
+- **Plain text only.** No rich text, so nothing is ever read as HTML and no address becomes a link by itself.
+- **Scheduling.** A start time in the future: the announcement and its notifications exist at once, but residents see them only
+  from that time (`visible_at`); no scheduler is needed. After the end time it moves to the resident's archive.
+- **Notifications are written only by the database.** Triggers: a new charge (the people who may see the line), a payment (the
+  payer and the owners; a tenant is never told about an owner's payment), a cancelled payment ("payment received" stays, a "payment
+  cancelled" is added), a new havale notice (the admins of that site), havale approved or rejected (the sender, one notification).
+  Unread notifications that stop being true are removed: a cancelled charge, a deleted charge batch, a finished havale notice,
+  an unpublished or deleted announcement.
+- **A notification can never make money fail.** Texts are cut to length, links are fixed internal paths (the table refuses
+  anything else, and the browser checks again before it navigates), duplicates are ignored, and every write is wrapped: an error
+  is only a WARNING in the log. A test makes every notification insert fail on purpose and checks that a charge and a payment
+  still work.
+- **No backfill.** The charges and payments that existed before this migration created no notifications.
+- **Not built (named on purpose):** rich text, attachments, templates, e-mail / SMS / push, reminders ("3 days left", "overdue":
+  they need a scheduler), Realtime (the bell asks again every minute and when the window gets focus), notification preferences
+  (Profilim), request events (slice 9), cleaning up old notifications.
 
 ### Testing havale notices on the hosted demo
 

@@ -16,6 +16,7 @@ import {
 import { useState } from 'react'
 import { Outlet } from 'react-router'
 import { BrandLogo } from '@/components/BrandLogo'
+import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { SidebarNav, type NavGroup } from '@/components/nav/SidebarNav'
 import { SignedInAs } from '@/components/SignedInAs'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
@@ -87,6 +88,7 @@ export function AdminLayout() {
             </Badge>
           )}
           <div className="ml-auto flex items-center gap-1">
+            <NotificationBell to="/yonetim/bildirimler" />
             <SignedInAs />
             <ThemeToggle />
             <Button variant="ghost" onClick={() => void signOut()}>

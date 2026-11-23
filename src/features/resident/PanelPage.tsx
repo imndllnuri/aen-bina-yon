@@ -1,10 +1,11 @@
-import { Megaphone, Wrench } from 'lucide-react'
+import { Wrench } from 'lucide-react'
 import { Link } from 'react-router'
 import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { Button } from '@/components/ui/button'
 import type { MyUnit } from './api'
 import { BalanceCard } from './components/BalanceCard'
 import { ComingSoonCard } from './components/ComingSoonCard'
+import { LatestAnnouncements } from './components/LatestAnnouncements'
 import { LineList } from './components/LineList'
 import { RecentPayments } from './components/RecentPayments'
 import { ResidentGate } from './components/ResidentGate'
@@ -38,7 +39,7 @@ function PanelContent({ unit }: { unit: MyUnit }) {
 
       <div className="grid gap-3 sm:grid-cols-1">
         <RecentPayments />
-        <ComingSoonCard icon={Megaphone} title="Duyurular" text="Site yönetiminin duyuruları yakında burada olacak." />
+        <LatestAnnouncements />
         <ComingSoonCard icon={Wrench} title="Taleplerim" text="Arıza ve istek bildirimi yakında burada olacak." />
       </div>
     </>

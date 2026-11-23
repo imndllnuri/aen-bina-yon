@@ -23,7 +23,85 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "blocks": {
+            "announcement_reads": {
+                  Row: {
+                    "announcement_id": string,"profile_id": string,"read_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "announcement_id": string,"profile_id": string,"read_at"?: string
+                  }
+                  Update: {
+                    "announcement_id"?: string,"profile_id"?: string,"read_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcement_reads_announcement_id_fkey"
+      columns: ["announcement_id"]
+isOneToOne: false
+      referencedRelation: "announcements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcement_reads_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"announcement_recipients": {
+                  Row: {
+                    "added_at": string,"announcement_id": string,"profile_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "added_at"?: string,"announcement_id": string,"profile_id": string
+                  }
+                  Update: {
+                    "added_at"?: string,"announcement_id"?: string,"profile_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcement_recipients_announcement_id_fkey"
+      columns: ["announcement_id"]
+isOneToOne: false
+      referencedRelation: "announcements"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcement_recipients_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"announcements": {
+                  Row: {
+                    "body": string,"created_at": string,"created_by": string | null,"deleted_at": string | null,"expire_at": string | null,"id": string,"last_resent_at": string | null,"pinned": boolean,"publish_at": string | null,"published_at": string | null,"resend_count": number,"site_id": string,"status": string,"target": NonNullable<Json>,"title": string,"type": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"created_by"?: string | null,"deleted_at"?: string | null,"expire_at"?: string | null,"id"?: string,"last_resent_at"?: string | null,"pinned"?: boolean,"publish_at"?: string | null,"published_at"?: string | null,"resend_count"?: number,"site_id": string,"status"?: string,"target": NonNullable<Json>,"title": string,"type"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"created_by"?: string | null,"deleted_at"?: string | null,"expire_at"?: string | null,"id"?: string,"last_resent_at"?: string | null,"pinned"?: boolean,"publish_at"?: string | null,"published_at"?: string | null,"resend_count"?: number,"site_id"?: string,"status"?: string,"target"?: NonNullable<Json>,"title"?: string,"type"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcements_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcements_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"blocks": {
                   Row: {
                     "created_at": string,"id": string,"name": string,"site_id": string
                   }
@@ -170,6 +248,26 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"notifications": {
+                  Row: {
+                    "body": string | null,"created_at": string,"event_key": string,"id": string,"kind": string,"link": string | null,"profile_id": string,"read_at": string | null,"title": string,"visible_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string | null,"created_at"?: string,"event_key": string,"id"?: string,"kind": string,"link"?: string | null,"profile_id": string,"read_at"?: string | null,"title": string,"visible_at"?: string
+                  }
+                  Update: {
+                    "body"?: string | null,"created_at"?: string,"event_key"?: string,"id"?: string,"kind"?: string,"link"?: string | null,"profile_id"?: string,"read_at"?: string | null,"title"?: string,"visible_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notifications_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"payment_allocations": {
                   Row: {
@@ -500,6 +598,14 @@ isOneToOne: false
             "accept_kvkk":
 { Args: { "p_version": string }; Returns: undefined
                            },
+"announcement_report":
+{ Args: { "p_id": string }; Returns: {
+              "full_name": string,"profile_id": string,"read_at": string,"relations": string,"units": string
+            }[]
+                           },
+"announcement_target":
+{ Args: { "p_id": string }; Returns: Json
+                           },
 "approve_transfer_notice":
 { Args: { "p_charge_ids": (string)[],"p_notice": string }; Returns: string
                            },
@@ -508,6 +614,9 @@ isOneToOne: false
                            },
 "create_charge_batch":
 { Args: { "p_amount_kurus": number,"p_charge_type": string,"p_description": string,"p_due_date": string,"p_expected_kurus": number,"p_expected_units": number,"p_karar_date": string,"p_karar_no": string,"p_period": string,"p_request_id": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
+                           },
+"delete_announcement":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "delete_charge_batch":
 { Args: { "p_batch": string }; Returns: undefined
@@ -525,6 +634,14 @@ isOneToOne: false
               "amount_kurus": number,"company_name": string,"fee_kurus": number,"installments": number,"lines": Json,"method": string,"note": string,"paid_at": string,"payer_name": string,"provider": string,"receipt_no": string,"site_name": string,"status": string,"total_kurus": number,"unit_label": string,"void_reason": string
             }[]
                            },
+"list_announcements":
+{ Args: { "p_site": string }; Returns: {
+              "body": string,"created_at": string,"expire_at": string,"id": string,"last_resent_at": string,"pinned": boolean,"publish_at": string,"published_at": string,"read_count": number,"recipient_count": number,"resend_count": number,"status": string,"title": string,"type": string,"updated_at": string
+            }[]
+                           },
+"mark_announcement_read":
+{ Args: { "p_announcement": string }; Returns: undefined
+                           },
 "pay_charges_mock":
 { Args: { "p_charge_ids": (string)[],"p_expected_total_kurus": number,"p_installments": number,"p_request_id": string }; Returns: string
                            },
@@ -533,10 +650,18 @@ isOneToOne: false
               "apply_kurus": number,"charge_id": string,"description": string,"due_date": string,"excess_kurus": number,"period": string,"remaining_kurus": number,"type_name": string
             }[]
                            },
+"preview_announcement_audience":
+{ Args: { "p_site": string,"p_target": Json }; Returns: {
+              "recipients": number,"units": number
+            }[]
+                           },
 "preview_charge_batch":
 { Args: { "p_amount_kurus": number,"p_site": string,"p_split": string,"p_target": Json }; Returns: {
               "amount_kurus": number,"block_name": string,"door_no": string,"unit_id": string,"weight": number
             }[]
+                           },
+"publish_announcement":
+{ Args: { "p_id": string }; Returns: number
                            },
 "quote_payment":
 { Args: { "p_charge_ids": (string)[],"p_installments": number }; Returns: {
@@ -548,6 +673,12 @@ isOneToOne: false
                            },
 "reject_transfer_notice":
 { Args: { "p_notice": string,"p_reason": string }; Returns: undefined
+                           },
+"resend_announcement_unread":
+{ Args: { "p_id": string }; Returns: number
+                           },
+"save_announcement":
+{ Args: { "p_body": string,"p_expire_at": string,"p_id": string,"p_pinned": boolean,"p_publish_at": string,"p_site": string,"p_target": Json,"p_title": string,"p_type": string }; Returns: string
                            },
 "save_bank_accounts":
 { Args: { "p_accounts": Json,"p_company": string }; Returns: undefined
@@ -563,6 +694,9 @@ isOneToOne: false
                            },
 "submit_transfer_notice":
 { Args: { "p_amount_kurus": number,"p_file_path": string,"p_note": string,"p_request_id": string,"p_sender_name": string,"p_sent_on": string,"p_unit": string }; Returns: string
+                           },
+"unpublish_announcement":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "void_charge":
 { Args: { "p_charge": string,"p_reason": string }; Returns: undefined

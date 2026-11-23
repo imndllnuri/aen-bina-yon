@@ -16,6 +16,8 @@ const api = vi.hoisted(() => ({
   fetchMyPayments: vi.fn(),
 }))
 vi.mock('./api', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api')>()), ...api }))
+const announcementsApi = vi.hoisted(() => ({ fetchMyAnnouncements: vi.fn(), fetchMyReadIds: vi.fn() }))
+vi.mock('@/features/announcements/api', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/features/announcements/api')>()), ...announcementsApi }))
 
 // A stand-in for the checkout: shows what the page passed to it.
 function CheckoutProbe() {
@@ -48,7 +50,9 @@ const balance: Balance = { lineCount: 5, chargedKurus: 630000, paidKurus: 0, bal
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-11-09T09:00:00Z'))
-  for (const fn of Object.values(api)) fn.mockReset()
+  for (const fn of [...Object.values(api), ...Object.values(announcementsApi)]) fn.mockReset()
+  announcementsApi.fetchMyAnnouncements.mockResolvedValue([])
+  announcementsApi.fetchMyReadIds.mockResolvedValue([])
   try {
     localStorage.clear()
   } catch {
@@ -122,12 +126,37 @@ describe('Ana Sayfa', () => {
     expect(within(card).getByText(money('₺1.500,00'))).toBeInTheDocument()
   })
 
-  it('has honest "coming soon" cards for the parts that are not built yet', async () => {
+  it('has an honest "coming soon" card for requests, and a real card for announcements', async () => {
     open('/panel')
     await screen.findByRole('button', { name: 'Hemen Öde' })
-    for (const title of ['Duyurular', 'Taleplerim']) expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Taleplerim' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Son duyurular' })).toBeInTheDocument()
+    expect(await screen.findByText('Şu anda güncel bir duyuru yok.')).toBeInTheDocument()
     expect(screen.getByText('Henüz bir ödeme yapılmadı.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Borçlarım' })).toHaveAttribute('href', '/borclarim')
+  })
+
+  it('shows the latest three current announcements with a dot for the unread ones, and leaves out archived ones', async () => {
+    const mk = (id: string, title: string, over: object = {}) => ({ id, title, body: 'Metin', type: 'genel', pinned: false, publishAt: null, expireAt: null, publishedAt: '2026-11-08T10:00:00Z', ...over })
+    announcementsApi.fetchMyAnnouncements.mockResolvedValue([
+      mk('a5', 'Eski duyuru', { expireAt: '2026-11-01T00:00:00Z' }), // an archived one FIRST: it must be skipped, not just pushed out by the limit of three
+      mk('a1', 'Su kesintisi', { type: 'bakim' }),
+      mk('a2', 'Genel kurul'),
+      mk('a3', 'Asansör bakımı'),
+      mk('a4', 'Dördüncü duyuru'),
+    ])
+    announcementsApi.fetchMyReadIds.mockResolvedValue(['a2'])
+    open('/panel')
+    const card = (await screen.findByRole('heading', { name: 'Son duyurular' })).closest('div')!.parentElement!
+    const items = await within(card).findAllByRole('listitem')
+    expect(items).toHaveLength(3)
+    expect(within(items[0]).getByText('Su kesintisi')).toBeInTheDocument()
+    expect(within(items[0]).getByRole('img', { name: 'Okunmadı' })).toBeInTheDocument()
+    expect(within(items[1]).getByText('Genel kurul')).toBeInTheDocument()
+    expect(within(items[1]).queryByRole('img', { name: 'Okunmadı' })).not.toBeInTheDocument() // already read
+    expect(within(card).queryByText('Dördüncü duyuru')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Eski duyuru')).not.toBeInTheDocument()
+    expect(within(card).getByRole('link', { name: 'Tümünü gör' })).toHaveAttribute('href', '/duyurular')
   })
 
   it('celebrates a zero balance', async () => {
