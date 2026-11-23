@@ -11,7 +11,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(228);
+select plan(236);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -423,6 +423,12 @@ select is((select count(*)::integer from public.announcements where title = 'Sü
 reset role;
 select pg_temp.act_as('a1000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.resend_announcement_unread(tt.aid('Süreli duyuru'))$$, 'P0001', 'not_active', 'an expired announcement cannot be resent');
+-- a typo in an announcement that has expired must be fixable: the unchanged end time stays valid, a NEW end time in the past does not
+select lives_ok($$select public.save_announcement(tt.aid('Süreli duyuru'), tt.site(), 'Süreli duyuru', 'Düzeltilmiş metin', 'genel', false, public.announcement_target(tt.aid('Süreli duyuru')), null,
+  (select expire_at from public.list_announcements(tt.site()) where title = 'Süreli duyuru'))$$, 'the text of an EXPIRED announcement can be corrected (its end time is sent back unchanged)');
+select is((select body from public.list_announcements(tt.site()) where title = 'Süreli duyuru'), 'Düzeltilmiş metin', '...and is saved');
+select throws_ok($$select public.save_announcement(tt.aid('Süreli duyuru'), tt.site(), 'Süreli duyuru', 'x', 'genel', false, public.announcement_target(tt.aid('Süreli duyuru')), null, now() - interval '2 days')$$, 'P0001', 'date_invalid',
+  'but a NEW end time in the past is still refused');
 reset role;
 
 select pg_temp.act_as('a1000000-0000-0000-0000-000000000001');
@@ -446,6 +452,20 @@ select is((select count(*)::integer from public.announcements where title = 'Sü
 select is(tt.unread('b6000000-0000-0000-0000-000000000006', 'announcement'), 1, 'its unread notification is gone too');
 select pg_temp.act_as('b6000000-0000-0000-0000-000000000006');
 select is((select count(*)::integer from public.announcements where title = 'Süreli duyuru'), 0, 'the resident no longer sees a deleted announcement');
+reset role;
+
+-- editing a PUBLISHED announcement that has a start time: the form sends the stored start time back, the lock must accept it
+select pg_temp.act_as('a1000000-0000-0000-0000-000000000001');
+select lives_ok($$select public.publish_announcement(tt.save('Planlı düzenleme', tt.t_units(array[tt.unit('3')::text]), date_trunc('minute', now() + interval '2 days')))$$, 'a scheduled announcement (start time in two days) is published');
+select lives_ok($$select public.save_announcement(tt.aid('Planlı düzenleme'), tt.site(), 'Planlı düzenleme', 'Yeni metin', 'genel', false, public.announcement_target(tt.aid('Planlı düzenleme')),
+  (to_char((select publish_at from public.list_announcements(tt.site()) where title = 'Planlı düzenleme') at time zone 'Europe/Istanbul', 'YYYY-MM-DD"T"HH24:MI:SS') || '+03:00')::timestamptz, null)$$,
+  'its text can be edited when the start time comes back written in Istanbul time (+03:00): the same moment');
+select is((select body from public.list_announcements(tt.site()) where title = 'Planlı düzenleme'), 'Yeni metin', '...and is saved');
+select lives_ok($$select public.save_announcement(tt.aid('Planlı düzenleme'), tt.site(), 'Planlı düzenleme', 'Yine yeni', 'genel', false, public.announcement_target(tt.aid('Planlı düzenleme')),
+  (select publish_at + interval '20 seconds' from public.list_announcements(tt.site()) where title = 'Planlı düzenleme'), null)$$,
+  '...and 20 seconds later in the same minute is the same start time (the form works in minutes)');
+select throws_ok($$select public.save_announcement(tt.aid('Planlı düzenleme'), tt.site(), 'Planlı düzenleme', 'x', 'genel', false, public.announcement_target(tt.aid('Planlı düzenleme')),
+  (select publish_at + interval '1 hour' from public.list_announcements(tt.site()) where title = 'Planlı düzenleme'), null)$$, 'P0001', 'locked_after_publish', 'but a different start time is locked');
 reset role;
 
 -- ---------------------------------------------------------------------------

@@ -365,10 +365,21 @@ begin
   if p_type is null or p_type not in ('genel', 'acil', 'bakim', 'toplanti') then
     raise exception 'type_invalid';
   end if;
+  if p_id is not null then
+    select * into v_old from public.announcements a where a.id = p_id and a.site_id = p_site and a.deleted_at is null for update;
+    if not found then
+      raise exception 'not allowed' using errcode = '42501';
+    end if;
+  end if;
   if p_publish_at is not null and p_publish_at > now() + interval '1 year' then
     raise exception 'date_invalid';
   end if;
-  if p_expire_at is not null and (p_expire_at <= now() or (p_publish_at is not null and p_expire_at <= p_publish_at)) then
+  -- An end time in the past is refused when it is NEW. An unchanged one stays valid: otherwise a typo in an announcement that
+  -- has already expired (or a draft whose end time has passed meanwhile) could never be corrected. Compared to the minute,
+  -- because the form works in minutes.
+  if p_expire_at is not null and (
+       (p_expire_at <= now() and case when p_id is null then true else date_trunc('minute', p_expire_at) is distinct from date_trunc('minute', v_old.expire_at) end)
+       or (p_publish_at is not null and p_expire_at <= p_publish_at)) then
     raise exception 'date_invalid';
   end if;
   v_target := private.normalize_target(p_site, p_target);
@@ -380,11 +391,7 @@ begin
     return v_id;
   end if;
 
-  select * into v_old from public.announcements a where a.id = p_id and a.site_id = p_site and a.deleted_at is null for update;
-  if not found then
-    raise exception 'not allowed' using errcode = '42501';
-  end if;
-  if v_old.status = 'published' and (v_target is distinct from v_old.target or p_publish_at is distinct from v_old.publish_at) then
+  if v_old.status = 'published' and (v_target is distinct from v_old.target or date_trunc('minute', p_publish_at) is distinct from date_trunc('minute', v_old.publish_at)) then
     raise exception 'locked_after_publish';
   end if;
   update public.announcements

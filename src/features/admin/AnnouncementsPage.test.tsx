@@ -299,6 +299,46 @@ describe('Duyurular (admin): writing one', () => {
   })
 })
 
+describe('Duyurular (admin): editing what is already published', () => {
+  const edit = async (user: ReturnType<typeof userEvent.setup>, title: string) => {
+    open()
+    await user.click(within(await menuOf(user, title)).getByRole('menuitem', { name: 'Düzenle' }))
+    const dialog = await screen.findByRole('dialog')
+    await within(dialog).findByLabelText('Kapsam')
+    return dialog
+  }
+
+  it('a SCHEDULED announcement: the stored start time and the target are sent back exactly (the locked fields are still sent)', async () => {
+    const user = userEvent.setup()
+    const dialog = await edit(user, 'Planlanmış duyuru')
+    expect(within(dialog).getByLabelText(/Başlangıç/)).toHaveValue('2026-12-25T12:00') // 09:00 UTC = 12:00 in Istanbul
+    expect(within(dialog).getByLabelText(/Başlangıç/)).toBeDisabled()
+    await user.clear(within(dialog).getByLabelText(/Metin/))
+    await user.type(within(dialog).getByLabelText(/Metin/), 'Düzeltilmiş metin')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(api.saveAnnouncement).toHaveBeenCalledTimes(1))
+    expect(api.saveAnnouncement).toHaveBeenCalledWith({
+      id: 's1', siteId: 's1', title: 'Planlanmış duyuru', body: 'Düzeltilmiş metin', type: 'genel', pinned: false,
+      target: { scope: 'blocks', audience: 'owners', block_ids: ['bA'] },
+      publishAt: '2026-12-25T12:00:00+03:00', // the same moment as the stored 09:00 UTC, so the database accepts it as unchanged
+      expireAt: null,
+    })
+    expect(new Date('2026-12-25T12:00:00+03:00').toISOString()).toBe('2026-12-25T09:00:00.000Z')
+    expect(toast.success).toHaveBeenCalledWith('Değişiklikler kaydedildi.')
+  })
+
+  it('an EXPIRED announcement: its end time is sent back unchanged so a typo can be corrected', async () => {
+    const user = userEvent.setup()
+    const dialog = await edit(user, 'Süresi dolmuş duyuru')
+    expect(within(dialog).getByLabelText(/Bitiş/)).toHaveValue('2026-11-01T13:00')
+    await user.clear(within(dialog).getByLabelText(/Başlık/))
+    await user.type(within(dialog).getByLabelText(/Başlık/), 'Süresi dolmuş duyuru (düzeltildi)')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet' }))
+    await waitFor(() => expect(api.saveAnnouncement).toHaveBeenCalledTimes(1))
+    expect(api.saveAnnouncement.mock.calls[0][0]).toMatchObject({ id: 'x1', title: 'Süresi dolmuş duyuru (düzeltildi)', publishAt: null, expireAt: '2026-11-01T13:00:00+03:00' })
+  })
+})
+
 describe('Duyurular (admin): the read report', () => {
   const report: ReportRow[] = [
     { profileId: 'p1', fullName: 'Dilek Diğer', units: 'A Blok · 2', relations: 'owner', readAt: null },
