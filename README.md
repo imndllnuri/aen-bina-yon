@@ -79,7 +79,7 @@ alone, but the generated local defaults would turn hosted MFA and e-mail protect
 ### Hosted project status
 
 - Project `aen-bina-yonetimi` (ref `dogcevoorjlgbmykaqdy`, region eu-west-2). Signups are **off**
-  (invite-only). Migrations `0001` to `0005` and the demo data are applied, and the
+  (invite-only). Migrations `0001` to `0006` and the demo data are applied, and the
   `invite-resident` function is deployed.
 - The first admin is made by hand: create a user in the dashboard (Authentication → Users → Add
   user), then run this in the SQL Editor (demo site id from `seed.sql`):
@@ -238,6 +238,14 @@ facts, approve / reject, and the bank accounts residents see) and, in **Tahsilat
 - **Left for slice 8 (notifications):** "new notice" for admins, "approved / rejected" for the resident. Until
   then the resident reads the state and the reject reason on Havale Bildir and Ödemelerim. Left for slice 10:
   the audit log entries, a settings screen for bank accounts, deleting old files of rejected notices.
+
+### Testing havale notices on the hosted demo
+
+Use the sample IBAN `TR33 0006 1005 1978 6457 8413 26` (Havale Onayları → "Hesapları düzenle") and a **made-up**
+PDF or PNG, never a real bank slip: dekonts are personal financial data, GitHub Pages is a demo host, and files
+of rejected or cancelled notices are not deleted yet. Put the tenant and the owner on the same unit, send a notice
+as the tenant, approve it as the admin, then check the receipt (PDF), the resident pages and "Elle ödeme gir".
+Before real residents join, the KVKK text must cover dekont uploads and how long they are kept.
 
 ### Testing the resident panel with your own account
 
