@@ -399,6 +399,116 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"request_comments": {
+                  Row: {
+                    "author_id": string | null,"body": string,"by_admin": boolean,"created_at": string,"id": string,"is_internal": boolean,"request_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id"?: string | null,"body": string,"by_admin": boolean,"created_at"?: string,"id"?: string,"is_internal"?: boolean,"request_id": string
+                  }
+                  Update: {
+                    "author_id"?: string | null,"body"?: string,"by_admin"?: boolean,"created_at"?: string,"id"?: string,"is_internal"?: boolean,"request_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "request_comments_author_id_fkey"
+      columns: ["author_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "request_comments_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "requests"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"request_events": {
+                  Row: {
+                    "actor_id": string | null,"created_at": string,"from_status": string | null,"id": string,"kind": string,"rating": number | null,"request_id": string,"to_status": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_id"?: string | null,"created_at"?: string,"from_status"?: string | null,"id"?: string,"kind": string,"rating"?: number | null,"request_id": string,"to_status"?: string | null
+                  }
+                  Update: {
+                    "actor_id"?: string | null,"created_at"?: string,"from_status"?: string | null,"id"?: string,"kind"?: string,"rating"?: number | null,"request_id"?: string,"to_status"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "request_events_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "request_events_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "requests"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"request_photos": {
+                  Row: {
+                    "created_at": string,"file_path": string,"id": string,"position": number,"request_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"file_path": string,"id"?: string,"position": number,"request_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"file_path"?: string,"id"?: string,"position"?: number,"request_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "request_photos_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "requests"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"requests": {
+                  Row: {
+                    "category": string,"created_at": string,"created_by": string | null,"description": string,"id": string,"location": string | null,"priority": string,"rated_at": string | null,"rating": number | null,"requester_id": string | null,"resolved_at": string | null,"site_id": string,"status": string,"title": string,"token": string,"unit_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category": string,"created_at"?: string,"created_by"?: string | null,"description": string,"id"?: string,"location"?: string | null,"priority"?: string,"rated_at"?: string | null,"rating"?: number | null,"requester_id"?: string | null,"resolved_at"?: string | null,"site_id": string,"status"?: string,"title": string,"token": string,"unit_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "category"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string,"id"?: string,"location"?: string | null,"priority"?: string,"rated_at"?: string | null,"rating"?: number | null,"requester_id"?: string | null,"resolved_at"?: string | null,"site_id"?: string,"status"?: string,"title"?: string,"token"?: string,"unit_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "requests_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_requester_id_fkey"
+      columns: ["requester_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_site_id_fkey"
+      columns: ["site_id"]
+isOneToOne: false
+      referencedRelation: "sites"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "requests_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"site_members": {
                   Row: {
                     "created_at": string,"profile_id": string,"role": string,"site_id": string
@@ -598,6 +708,9 @@ isOneToOne: false
             "accept_kvkk":
 { Args: { "p_version": string }; Returns: undefined
                            },
+"add_request_comment":
+{ Args: { "p_body": string,"p_internal": boolean,"p_request": string }; Returns: string
+                           },
 "announcement_report":
 { Args: { "p_id": string }; Returns: {
               "full_name": string,"profile_id": string,"read_at": string,"relations": string,"units": string
@@ -609,11 +722,17 @@ isOneToOne: false
 "approve_transfer_notice":
 { Args: { "p_charge_ids": (string)[],"p_notice": string }; Returns: string
                            },
+"cancel_request":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "cancel_transfer_notice":
 { Args: { "p_notice": string }; Returns: undefined
                            },
 "create_charge_batch":
 { Args: { "p_amount_kurus": number,"p_charge_type": string,"p_description": string,"p_due_date": string,"p_expected_kurus": number,"p_expected_units": number,"p_karar_date": string,"p_karar_no": string,"p_period": string,"p_request_id": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
+                           },
+"create_request":
+{ Args: { "p_category": string,"p_description": string,"p_location": string,"p_photos": (string)[],"p_priority": string,"p_requester": string,"p_title": string,"p_token": string,"p_unit": string }; Returns: string
                            },
 "delete_announcement":
 { Args: { "p_id": string }; Returns: undefined
@@ -668,6 +787,9 @@ isOneToOne: false
               "amount_kurus": number,"charge_id": string,"description": string,"due_date": string,"fee_kurus": number,"period": string,"total_kurus": number,"type_name": string,"unit_id": string
             }[]
                            },
+"rate_request":
+{ Args: { "p_id": string,"p_rating": number }; Returns: undefined
+                           },
 "record_manual_payment":
 { Args: { "p_amount_kurus": number,"p_charge_ids": (string)[],"p_method": string,"p_note": string,"p_paid_on": string,"p_payer": string,"p_payer_name": string,"p_request_id": string,"p_unit": string }; Returns: string
                            },
@@ -692,11 +814,20 @@ isOneToOne: false
 "set_recurring_plan_active":
 { Args: { "p_active": boolean,"p_plan": string }; Returns: undefined
                            },
+"set_request_status":
+{ Args: { "p_id": string,"p_status": string }; Returns: undefined
+                           },
+"set_request_triage":
+{ Args: { "p_category": string,"p_id": string,"p_priority": string }; Returns: undefined
+                           },
 "submit_transfer_notice":
 { Args: { "p_amount_kurus": number,"p_file_path": string,"p_note": string,"p_request_id": string,"p_sender_name": string,"p_sent_on": string,"p_unit": string }; Returns: string
                            },
 "unpublish_announcement":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"update_request":
+{ Args: { "p_category": string,"p_description": string,"p_id": string,"p_location": string,"p_priority": string,"p_title": string }; Returns: undefined
                            },
 "void_charge":
 { Args: { "p_charge": string,"p_reason": string }; Returns: undefined

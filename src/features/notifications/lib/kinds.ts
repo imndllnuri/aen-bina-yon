@@ -1,4 +1,4 @@
-export type NotificationKind = 'charge' | 'payment' | 'payment_void' | 'havale_new' | 'havale_approved' | 'havale_rejected' | 'announcement'
+export type NotificationKind = 'charge' | 'payment' | 'payment_void' | 'havale_new' | 'havale_approved' | 'havale_rejected' | 'announcement' | 'request_new' | 'request_status' | 'request_comment'
 
 export const KIND_LABEL: Record<NotificationKind, string> = {
   charge: 'Borç',
@@ -8,6 +8,9 @@ export const KIND_LABEL: Record<NotificationKind, string> = {
   havale_approved: 'Havale onayı',
   havale_rejected: 'Havale reddi',
   announcement: 'Duyuru',
+  request_new: 'Yeni talep',
+  request_status: 'Talep durumu',
+  request_comment: 'Talep yorumu',
 }
 
 const KINDS = Object.keys(KIND_LABEL)

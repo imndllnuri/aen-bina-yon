@@ -17,9 +17,12 @@ describe('safeInternalPath: a notification link is followed only when it is a pa
 
 describe('kindLabel', () => {
   it('names every kind in Turkish and shows an unknown kind as a plain notification', () => {
-    expect(Object.keys(KIND_LABEL)).toHaveLength(7)
+    expect(Object.keys(KIND_LABEL)).toHaveLength(10)
     expect(kindLabel('payment')).toBe('Ödeme')
     expect(kindLabel('havale_new')).toBe('Havale bildirimi')
+    expect(kindLabel('request_new')).toBe('Yeni talep')
+    expect(kindLabel('request_status')).toBe('Talep durumu')
+    expect(kindLabel('request_comment')).toBe('Talep yorumu')
     expect(kindLabel('from_the_future')).toBe('Bildirim')
   })
 })

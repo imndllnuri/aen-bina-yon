@@ -9,6 +9,8 @@ import { SetPassword } from '@/features/auth/SetPassword'
 import { AdminAnnouncementsPage } from '@/features/admin/AnnouncementsPage'
 import { BorclandirmaPage } from '@/features/admin/BorclandirmaPage'
 import { AdminPaymentsPage } from '@/features/admin/PaymentsPage'
+import { AdminRequestDetailPage } from '@/features/admin/RequestDetailPage'
+import { AdminRequestsPage } from '@/features/admin/RequestsPage'
 import { ResidentsPage } from '@/features/admin/ResidentsPage'
 import { TransferApprovalsPage } from '@/features/admin/TransferApprovalsPage'
 import { UnitsPage } from '@/features/admin/UnitsPage'
@@ -20,6 +22,9 @@ import { DebtsPage } from '@/features/resident/DebtsPage'
 import { PanelPage } from '@/features/resident/PanelPage'
 import { PaymentResultPage } from '@/features/resident/PaymentResultPage'
 import { PaymentsPage } from '@/features/resident/PaymentsPage'
+import { RequestCreatePage } from '@/features/resident/RequestCreatePage'
+import { RequestDetailPage } from '@/features/resident/RequestDetailPage'
+import { RequestsPage } from '@/features/resident/RequestsPage'
 import { ThreeDSecurePage } from '@/features/resident/ThreeDSecurePage'
 import { TransferNoticePage } from '@/features/resident/TransferNoticePage'
 import { Contact } from '@/features/public/Contact'
@@ -68,7 +73,9 @@ export const routes: RouteObject[] = [
       { path: '/havale-bildirimi', element: <TransferNoticePage /> },
       { path: '/duyurular', element: <AnnouncementsPage /> },
       { path: '/bildirimler', element: <NotificationsPage /> },
-      { path: '/taleplerim', element: page('Taleplerim') },
+      { path: '/taleplerim', element: <RequestsPage /> },
+      { path: '/taleplerim/yeni', element: <RequestCreatePage /> },
+      { path: '/taleplerim/:id', element: <RequestDetailPage /> },
       { path: '/profil', element: page('Profil') },
     ],
   },
@@ -88,7 +95,8 @@ export const routes: RouteObject[] = [
       { path: 'havale-onaylari', element: <TransferApprovalsPage /> },
       { path: 'duyurular', element: <AdminAnnouncementsPage /> },
       { path: 'bildirimler', element: <NotificationsPage /> },
-      { path: 'talepler', element: page('Talepler') },
+      { path: 'talepler', element: <AdminRequestsPage /> },
+      { path: 'talepler/:id', element: <AdminRequestDetailPage /> },
       { path: 'teklif-talepleri', element: page('Teklif Talepleri') },
       { path: 'raporlar', element: page('Raporlar') },
       { path: 'ayarlar', element: page('Ayarlar') },
