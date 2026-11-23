@@ -10,7 +10,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(287);
+select plan(288);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -140,6 +140,8 @@ insert into storage.objects (bucket_id, name, owner_id) values
   ('talep-fotolari', tt.ph('2', 11), tt.u('OA2')::text),
   ('talep-fotolari', tt.ph('1', 12, 'png'), tt.u('OA')::text),
   ('talep-fotolari', tt.ph('1', 13, 'webp'), tt.u('OA')::text);
+-- a file of ANOTHER bucket (a dekont) with a photo-like name, uploaded by OA
+insert into storage.objects (bucket_id, name, owner_id) values ('dekontlar', tt.ph('1', 14), tt.u('OA')::text);
 
 delete from public.notifications;
 
@@ -238,6 +240,7 @@ select throws_ok($$select tt.mk(1, '1', p_priority => null)$$, 'P0001', 'priorit
 select throws_ok($$select tt.mk(1, '1', p_location => repeat('a', 121))$$, 'P0001', 'location_invalid', 'a place of 121 letters is refused');
 select throws_ok($$select tt.mk(1, '1', p_photos => array[tt.ph('1', 1), tt.ph('1', 2), tt.ph('1', 5), tt.ph('1', 6)])$$, 'P0001', 'too_many_photos', 'four photos are refused');
 select throws_ok($$select tt.mk(1, '1', p_photos => array[tt.ph('1', 99)])$$, 'P0001', 'photo_invalid', 'a photo that was never uploaded is refused');
+select throws_ok($$select tt.mk(1, '1', p_photos => array[tt.ph('1', 14)])$$, 'P0001', 'photo_invalid', 'a file that sits in ANOTHER bucket (a dekont) is refused as a photo');
 select throws_ok($$select tt.mk(1, '1', p_photos => array[tt.ph('1', 3)])$$, 'P0001', 'photo_invalid', 'a photo uploaded by SOMEONE ELSE (the tenant) is refused');
 select throws_ok($$select tt.mk(1, '1', p_photos => array[tt.ph('2', 10)])$$, 'P0001', 'photo_invalid', 'a photo from the folder of ANOTHER unit is refused');
 select throws_ok($$select tt.mk(1, '1', p_photos => array['not-a-path'])$$, 'P0001', 'photo_invalid', 'a strange path is refused');
