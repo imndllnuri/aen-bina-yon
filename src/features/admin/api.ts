@@ -355,7 +355,12 @@ export async function fetchCharges(siteId: string, filters: ChargeFilters): Prom
   if (filters.period) statusQuery = statusQuery.eq('period', filters.period)
   if (filters.typeId) statusQuery = statusQuery.eq('charge_type_id', filters.typeId)
   if (filters.blockId) statusQuery = statusQuery.eq('block_id', filters.blockId)
-  const [{ data, error }, statuses] = await Promise.all([query.order('created_at', { ascending: false }).limit(CHARGE_LIST_LIMIT), statusQuery.limit(CHARGE_LIST_LIMIT)])
+  // BOTH queries use the same order (newest first, ties by id) and the same limit, so they cut the list at the same line.
+  // Without an order on the status query, above 1000 lines a paid line could be missing from it and look unpaid.
+  const [{ data, error }, statuses] = await Promise.all([
+    query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(CHARGE_LIST_LIMIT),
+    statusQuery.order('created_at', { ascending: false }).order('charge_id', { ascending: false }).limit(CHARGE_LIST_LIMIT),
+  ])
   if (error) throw error
   if (statuses.error) throw statuses.error
   const statusOf = new Map(statuses.data.map((s) => [s.charge_id, s]))

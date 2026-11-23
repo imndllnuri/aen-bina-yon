@@ -146,6 +146,18 @@ describe('Borçlar (the charge lines)', () => {
     expect(within(rows[1]).getByRole('button', { name: 'A Blok 2 için işlemler' })).toBeInTheDocument() // an unpaid line keeps its menu
   })
 
+  it('shows a PARTLY paid line as "Kısmi" with what is paid and what is left, and offers no edit or cancel for it', async () => {
+    api.fetchCharges.mockResolvedValue({ rows: [charge({ id: 'c1', amountKurus: 50000, status: 'partial', paidKurus: 5000 }), charge({ id: 'c2', unitId: 'u2', doorNo: '2' })], truncated: false })
+    open()
+    await screen.findByText('A Blok · 1')
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(within(rows[0]).getByText('Kısmi')).toBeInTheDocument()
+    expect(within(rows[0]).getByText(/Ödenen ₺50,00 · Kalan ₺450,00/)).toBeInTheDocument()
+    expect(within(rows[0]).getByText('Ödeme alınmış')).toBeInTheDocument()
+    expect(within(rows[0]).queryByRole('button')).not.toBeInTheDocument() // Düzenle and İptal would fail with charge_paid
+    expect(within(rows[1]).queryByText(/Ödenen/)).not.toBeInTheDocument() // an unpaid line shows no payment text
+  })
+
   it('warns when the list was cut off', async () => {
     api.fetchCharges.mockResolvedValue({ rows: [charge({})], truncated: true })
     open()

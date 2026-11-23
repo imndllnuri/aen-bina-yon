@@ -146,7 +146,14 @@ export function ChargesTab({ site, blocks, types }: { site: AdminSite; blocks: B
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{row.period ? monthLabel(row.period) : '—'}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatDate(row.dueDate)}</TableCell>
-                      <TableCell className={`text-right tabular-nums ${row.voidedAt ? 'line-through' : ''}`}>{formatKurus(row.amountKurus)}</TableCell>
+                      <TableCell className={`text-right tabular-nums ${row.voidedAt ? 'line-through' : ''}`}>
+                        {formatKurus(row.amountKurus)}
+                        {row.status === 'partial' && (
+                          <div className="text-xs font-normal text-muted-foreground">
+                            Ödenen {formatKurus(row.paidKurus)} · Kalan {formatKurus(row.amountKurus - row.paidKurus)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={STATUS_VARIANT[state]}>{STATUS_LABELS[state]}</Badge>
                       </TableCell>

@@ -106,18 +106,22 @@ export async function fetchMyNotices(userId: string): Promise<NoticeRow[]> {
   }))
 }
 
-/** Every notice of the site (the admin queue): waiting ones first, then the newest. */
+const SITE_NOTICE_COLUMNS =
+  'id, unit_id, profile_id, amount, sent_on, sender_name, note, file_path, status, created_at, reviewed_at, reject_reason, payment_id, payments(status, receipt_no), units!inner(door_no, blocks!inner(name, site_id)), profiles!transfer_notices_profile_id_fkey(full_name, phone)'
+
+/**
+ * Every notice of the site (the admin queue): the WAITING ones first (the oldest first: it has waited longest), then the
+ * newest of the others. The waiting ones have their own query, so an old waiting notice can never fall out of the list
+ * behind 300 newer, finished ones.
+ */
 export async function fetchSiteNotices(siteId: string): Promise<AdminNoticeRow[]> {
-  const { data, error } = await client()
-    .from('transfer_notices')
-    .select(
-      'id, unit_id, profile_id, amount, sent_on, sender_name, note, file_path, status, created_at, reviewed_at, reject_reason, payment_id, payments(status, receipt_no), units!inner(door_no, blocks!inner(name, site_id)), profiles!transfer_notices_profile_id_fkey(full_name, phone)',
-    )
-    .eq('units.blocks.site_id', siteId)
-    .order('created_at', { ascending: false })
-    .limit(300)
-  if (error) throw error
-  const rows = data.map((row) => ({
+  const [waiting, others] = await Promise.all([
+    client().from('transfer_notices').select(SITE_NOTICE_COLUMNS).eq('units.blocks.site_id', siteId).eq('status', 'pending').order('created_at', { ascending: true }).limit(300),
+    client().from('transfer_notices').select(SITE_NOTICE_COLUMNS).eq('units.blocks.site_id', siteId).neq('status', 'pending').order('created_at', { ascending: false }).limit(300),
+  ])
+  if (waiting.error) throw waiting.error
+  if (others.error) throw others.error
+  return [...waiting.data, ...others.data].map((row) => ({
     id: row.id,
     unitId: row.unit_id,
     amountKurus: toKurus(row.amount),
@@ -137,8 +141,6 @@ export async function fetchSiteNotices(siteId: string): Promise<AdminNoticeRow[]
     senderFullName: row.profiles?.full_name ?? null,
     senderPhone: row.profiles?.phone ?? null,
   }))
-  // Waiting notices first (the oldest of them first: it has waited longest), then everything else newest first.
-  return [...rows.filter((r) => r.status === 'pending').reverse(), ...rows.filter((r) => r.status !== 'pending')]
 }
 
 export interface SubmitNoticeInput {

@@ -64,6 +64,9 @@ export function BalanceCard({ unitId }: { unitId: string }) {
           <Button asChild variant="outline">
             <Link to="/borclarim">Borçlarım</Link>
           </Button>
+          <Button asChild variant="ghost">
+            <Link to="/havale-bildirimi">Havale Bildir</Link>
+          </Button>
         </div>
         <p id="pay-hint" className="text-xs text-muted-foreground">
           {dueNow.length > 0

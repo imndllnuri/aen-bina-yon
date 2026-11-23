@@ -98,6 +98,11 @@ describe('Ana Sayfa', () => {
     expect(JSON.parse((await screen.findByTestId('checkout-state')).textContent!)).toEqual({ chargeIds: ['l1', 'l2', 'l3'] })
   })
 
+  it('has a visible way to "Havale Bildir" on the home page (a phone has only five fixed tabs at the bottom)', async () => {
+    open('/panel')
+    expect(await screen.findByRole('link', { name: 'Havale Bildir' })).toHaveAttribute('href', '/havale-bildirimi')
+  })
+
   it('does not offer "Hemen Öde" when nothing is due yet, and says why', async () => {
     api.fetchLedger.mockResolvedValue([ledger[3], ledger[4]])
     open('/panel')

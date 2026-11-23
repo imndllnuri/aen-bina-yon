@@ -81,6 +81,8 @@ describe('Ödeme (checkout)', () => {
     open('/odeme')
     expect(await screen.findByText('Önce ödemek istediğiniz borçları seçin.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Borçlarıma git' })).toHaveAttribute('href', '/borclarim')
+    // someone who wants to pay by bank transfer starts here too (a phone has no menu entry for it)
+    expect(screen.getByRole('link', { name: 'Havale Bildir' })).toHaveAttribute('href', '/havale-bildirimi')
     expect(api.quotePayment).not.toHaveBeenCalled()
   })
 

@@ -171,9 +171,14 @@ export function CheckoutPage() {
         <p role="status" className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
           Önce ödemek istediğiniz borçları seçin.
         </p>
-        <Button asChild>
-          <Link to="/borclarim">Borçlarıma git</Link>
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild>
+            <Link to="/borclarim">Borçlarıma git</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/havale-bildirimi">Havale Bildir</Link>
+          </Button>
+        </div>
       </PaymentFrame>
     )
   }
