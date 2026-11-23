@@ -40,6 +40,13 @@ function CheckoutContent({ chargeIds }: { chargeIds: string[] }) {
   return (
     <PaymentFrame title="Ödeme Yap">
       <TestBanner />
+      <p className="text-sm text-muted-foreground">
+        Bankadan havale ile ödemek mi istiyorsunuz?{' '}
+        <Link to="/havale-bildirimi" className="font-medium text-primary underline-offset-4 hover:underline">
+          Havale Bildir
+        </Link>{' '}
+        sayfasından dekontu yükleyin.
+      </p>
 
       <section aria-label="Ödeme özeti" className="space-y-3">
         <h2 className="text-lg font-semibold">Özet</h2>

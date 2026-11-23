@@ -21,6 +21,8 @@ export interface Receipt {
   paidAt: string
   status: 'approved' | 'voided'
   voidReason: string | null
+  /** What the admin wrote when the payment was entered by hand; it is printed on the receipt. */
+  note: string | null
   method: string
   provider: string
   installments: number
@@ -53,6 +55,7 @@ export async function fetchReceipt(paymentId: string): Promise<Receipt> {
     paidAt: row.paid_at,
     status: row.status === 'voided' ? 'voided' : 'approved',
     voidReason: row.void_reason,
+    note: row.note,
     method: row.method,
     provider: row.provider,
     installments: row.installments,

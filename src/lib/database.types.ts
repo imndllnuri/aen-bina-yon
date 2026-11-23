@@ -205,14 +205,14 @@ isOneToOne: false
                   ]
                 },"payments": {
                   Row: {
-                    "amount": number,"created_by": string | null,"fee": number,"id": string,"installments": number,"method": string,"paid_at": string,"payer_id": string | null,"payer_name": string | null,"provider": string,"provider_ref": string | null,"receipt_no": string,"request_id": string | null,"status": string,"unit_id": string,"unit_label": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                    "amount": number,"created_at": string,"created_by": string | null,"fee": number,"id": string,"installments": number,"method": string,"note": string | null,"paid_at": string,"payer_id": string | null,"payer_name": string | null,"provider": string,"provider_ref": string | null,"receipt_no": string,"request_id": string | null,"status": string,"unit_id": string,"unit_label": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount": number,"created_by"?: string | null,"fee"?: number,"id"?: string,"installments"?: number,"method": string,"paid_at"?: string,"payer_id"?: string | null,"payer_name"?: string | null,"provider": string,"provider_ref"?: string | null,"receipt_no": string,"request_id"?: string | null,"status"?: string,"unit_id": string,"unit_label": string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"fee"?: number,"id"?: string,"installments"?: number,"method": string,"note"?: string | null,"paid_at"?: string,"payer_id"?: string | null,"payer_name"?: string | null,"provider": string,"provider_ref"?: string | null,"receipt_no": string,"request_id"?: string | null,"status"?: string,"unit_id": string,"unit_label": string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Update: {
-                    "amount"?: number,"created_by"?: string | null,"fee"?: number,"id"?: string,"installments"?: number,"method"?: string,"paid_at"?: string,"payer_id"?: string | null,"payer_name"?: string | null,"provider"?: string,"provider_ref"?: string | null,"receipt_no"?: string,"request_id"?: string | null,"status"?: string,"unit_id"?: string,"unit_label"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"fee"?: number,"id"?: string,"installments"?: number,"method"?: string,"note"?: string | null,"paid_at"?: string,"payer_id"?: string | null,"payer_name"?: string | null,"provider"?: string,"provider_ref"?: string | null,"receipt_no"?: string,"request_id"?: string | null,"status"?: string,"unit_id"?: string,"unit_label"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -347,6 +347,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"transfer_notices": {
+                  Row: {
+                    "amount": number,"created_at": string,"file_path": string,"id": string,"note": string | null,"payment_id": string | null,"profile_id": string | null,"reject_reason": string | null,"request_id": string,"reviewed_at": string | null,"reviewed_by": string | null,"sender_name": string,"sent_on": string,"status": string,"unit_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"created_at"?: string,"file_path": string,"id"?: string,"note"?: string | null,"payment_id"?: string | null,"profile_id"?: string | null,"reject_reason"?: string | null,"request_id": string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sender_name": string,"sent_on": string,"status"?: string,"unit_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"file_path"?: string,"id"?: string,"note"?: string | null,"payment_id"?: string | null,"profile_id"?: string | null,"reject_reason"?: string | null,"request_id"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"sender_name"?: string,"sent_on"?: string,"status"?: string,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "transfer_notices_payment_id_fkey"
+      columns: ["payment_id"]
+isOneToOne: true
+      referencedRelation: "payments"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "transfer_notices_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "transfer_notices_reviewed_by_fkey"
+      columns: ["reviewed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "transfer_notices_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"unit_residents": {
                   Row: {
                     "created_at": string,"end_date": string | null,"id": string,"profile_id": string,"relation": string,"start_date": string,"unit_id": string
@@ -462,6 +500,12 @@ isOneToOne: false
             "accept_kvkk":
 { Args: { "p_version": string }; Returns: undefined
                            },
+"approve_transfer_notice":
+{ Args: { "p_charge_ids": (string)[],"p_notice": string }; Returns: string
+                           },
+"cancel_transfer_notice":
+{ Args: { "p_notice": string }; Returns: undefined
+                           },
 "create_charge_batch":
 { Args: { "p_amount_kurus": number,"p_charge_type": string,"p_description": string,"p_due_date": string,"p_expected_kurus": number,"p_expected_units": number,"p_karar_date": string,"p_karar_no": string,"p_period": string,"p_request_id": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
                            },
@@ -471,13 +515,23 @@ isOneToOne: false
 "generate_recurring_batch":
 { Args: { "p_plan": string }; Returns: string
                            },
+"get_bank_accounts":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "bank": string,"company_id": string,"holder": string,"iban": string
+            }[]
+                           },
 "get_receipt":
 { Args: { "p_payment": string }; Returns: {
-              "amount_kurus": number,"company_name": string,"fee_kurus": number,"installments": number,"lines": Json,"method": string,"paid_at": string,"payer_name": string,"provider": string,"receipt_no": string,"site_name": string,"status": string,"total_kurus": number,"unit_label": string,"void_reason": string
+              "amount_kurus": number,"company_name": string,"fee_kurus": number,"installments": number,"lines": Json,"method": string,"note": string,"paid_at": string,"payer_name": string,"provider": string,"receipt_no": string,"site_name": string,"status": string,"total_kurus": number,"unit_label": string,"void_reason": string
             }[]
                            },
 "pay_charges_mock":
 { Args: { "p_charge_ids": (string)[],"p_expected_total_kurus": number,"p_installments": number,"p_request_id": string }; Returns: string
+                           },
+"preview_allocation":
+{ Args: { "p_amount_kurus": number,"p_charge_ids": (string)[],"p_payer": string,"p_unit": string }; Returns: {
+              "apply_kurus": number,"charge_id": string,"description": string,"due_date": string,"excess_kurus": number,"period": string,"remaining_kurus": number,"type_name": string
+            }[]
                            },
 "preview_charge_batch":
 { Args: { "p_amount_kurus": number,"p_site": string,"p_split": string,"p_target": Json }; Returns: {
@@ -489,6 +543,15 @@ isOneToOne: false
               "amount_kurus": number,"charge_id": string,"description": string,"due_date": string,"fee_kurus": number,"period": string,"total_kurus": number,"type_name": string,"unit_id": string
             }[]
                            },
+"record_manual_payment":
+{ Args: { "p_amount_kurus": number,"p_charge_ids": (string)[],"p_method": string,"p_note": string,"p_paid_on": string,"p_payer": string,"p_payer_name": string,"p_request_id": string,"p_unit": string }; Returns: string
+                           },
+"reject_transfer_notice":
+{ Args: { "p_notice": string,"p_reason": string }; Returns: undefined
+                           },
+"save_bank_accounts":
+{ Args: { "p_accounts": Json,"p_company": string }; Returns: undefined
+                           },
 "save_recurring_plan":
 { Args: { "p_amount_kurus": number,"p_charge_type": string,"p_day": number,"p_description": string,"p_id": string,"p_karar_date": string,"p_karar_no": string,"p_name": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
                            },
@@ -497,6 +560,9 @@ isOneToOne: false
                            },
 "set_recurring_plan_active":
 { Args: { "p_active": boolean,"p_plan": string }; Returns: undefined
+                           },
+"submit_transfer_notice":
+{ Args: { "p_amount_kurus": number,"p_file_path": string,"p_note": string,"p_request_id": string,"p_sender_name": string,"p_sent_on": string,"p_unit": string }; Returns: string
                            },
 "void_charge":
 { Args: { "p_charge": string,"p_reason": string }; Returns: undefined

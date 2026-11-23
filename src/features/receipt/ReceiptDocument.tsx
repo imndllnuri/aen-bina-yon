@@ -73,14 +73,15 @@ export function ReceiptDocument({ receipt }: { receipt: Receipt }) {
           <Field label="Tarih" value={formatDateTime(receipt.paidAt)} />
           <Field label="Daire" value={receipt.unitLabel} />
           <Field label="Ödeyen" value={receipt.payerName ?? '—'} />
-          <Field label="Ödeme yöntemi" value={`${methodLabel(receipt.method)} · ${installmentsLabel(receipt.installments)}`} />
+          <Field label="Ödeme yöntemi" value={receipt.method === 'card' ? `${methodLabel(receipt.method)} · ${installmentsLabel(receipt.installments)}` : methodLabel(receipt.method)} />
+          {receipt.note && <Field label="Açıklama" value={receipt.note} />}
         </View>
 
         <View style={styles.tableHead}>
           <Text style={styles.cType}>Borç</Text>
           <Text style={styles.cPeriod}>Dönem</Text>
           <Text style={styles.cDue}>Son ödeme</Text>
-          <Text style={styles.cAmount}>Tutar</Text>
+          <Text style={styles.cAmount}>Ödenen tutar</Text>
         </View>
         {receipt.lines.map((line, index) => (
           <View key={index} style={styles.row} wrap={false}>

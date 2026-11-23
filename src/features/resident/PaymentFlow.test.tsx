@@ -12,6 +12,8 @@ import { ThreeDSecurePage } from './ThreeDSecurePage'
 
 const api = vi.hoisted(() => ({ quotePayment: vi.fn(), payMock: vi.fn(), fetchMyPayments: vi.fn() }))
 vi.mock('./api', async (importOriginal) => ({ ...(await importOriginal<typeof import('./api')>()), ...api }))
+const transfers = vi.hoisted(() => ({ fetchMyNotices: vi.fn() }))
+vi.mock('@/features/transfers/api', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/features/transfers/api')>()), ...transfers }))
 const receiptApi = vi.hoisted(() => ({ fetchReceipt: vi.fn() }))
 vi.mock('@/features/receipt/api', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/features/receipt/api')>()), ...receiptApi }))
 const pdf = vi.hoisted(() => ({ downloadReceipt: vi.fn() }))
@@ -50,7 +52,7 @@ const quote = (over: Partial<Quote> = {}): Quote => ({
 })
 
 const receipt = (over: Partial<Receipt> = {}): Receipt => ({
-  receiptNo: 'MKB-2026-000007', paidAt: '2026-11-09T10:30:00Z', status: 'approved', voidReason: null, method: 'card', provider: 'mock', installments: 1,
+  receiptNo: 'MKB-2026-000007', paidAt: '2026-11-09T10:30:00Z', status: 'approved', voidReason: null, note: null, method: 'card', provider: 'mock', installments: 1,
   amountKurus: 150000, feeKurus: 0, totalKurus: 150000, payerName: 'Ayşe Kaya', unitLabel: 'A Blok · 1', siteName: 'Demo Sitesi', companyName: 'Firma',
   lines: [], ...over,
 })
@@ -61,7 +63,8 @@ const payment = (over: Partial<PaymentRow> = {}): PaymentRow => ({
 })
 
 beforeEach(() => {
-  for (const fn of [...Object.values(api), ...Object.values(receiptApi), ...Object.values(pdf), ...Object.values(toast)]) fn.mockReset()
+  for (const fn of [...Object.values(api), ...Object.values(receiptApi), ...Object.values(pdf), ...Object.values(toast), ...Object.values(transfers)]) fn.mockReset()
+  transfers.fetchMyNotices.mockResolvedValue([])
   api.quotePayment.mockResolvedValue(quote())
   api.payMock.mockResolvedValue('pay1')
   api.fetchMyPayments.mockResolvedValue([payment()])
@@ -79,6 +82,12 @@ describe('Ödeme (checkout)', () => {
     expect(await screen.findByText('Önce ödemek istediğiniz borçları seçin.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Borçlarıma git' })).toHaveAttribute('href', '/borclarim')
     expect(api.quotePayment).not.toHaveBeenCalled()
+  })
+
+  it('points to "Havale Bildir" for people who prefer to pay by bank transfer', async () => {
+    open('/odeme', { chargeIds: ['l1'] })
+    const link = await screen.findByRole('link', { name: 'Havale Bildir' })
+    expect(link).toHaveAttribute('href', '/havale-bildirimi')
   })
 
   it('shows the summary the DATABASE computed, with the fee line and the total', async () => {
@@ -233,6 +242,47 @@ describe('Ödemelerim', () => {
     await user.click(within(items[0]).getByRole('button', { name: 'Makbuz (PDF)' }))
     await waitFor(() => expect(receiptApi.fetchReceipt).toHaveBeenCalledWith('p1'))
     await waitFor(() => expect(pdf.downloadReceipt).toHaveBeenCalledTimes(1))
+  })
+
+  it('shows the havale notices that are still open (waiting or rejected with the reason) above the payments, and nothing else', async () => {
+    const base = { unitId: 'u1', amountKurus: 150000, sentOn: '2026-11-20', senderName: 'Ayşe Kaya', note: null, filePath: 'u1/x.pdf', createdAt: '2026-11-21T08:00:00Z', reviewedAt: null, paymentId: null, paymentStatus: null, receiptNo: null }
+    transfers.fetchMyNotices.mockResolvedValue([
+      { ...base, id: 'n1', status: 'pending', rejectReason: null },
+      { ...base, id: 'n2', status: 'rejected', rejectReason: 'Tutar hesabımıza geçmedi', amountKurus: 99900 },
+      { ...base, id: 'n3', status: 'approved', rejectReason: null, paymentId: 'p1', paymentStatus: 'approved', amountKurus: 50000 }, // already a payment below
+      { ...base, id: 'n4', status: 'cancelled', rejectReason: null, amountKurus: 12300 },
+    ])
+    open('/odemelerim')
+    expect(await screen.findByRole('heading', { name: 'Havale bildirimlerim' })).toBeInTheDocument()
+    expect(screen.getByText('Onay bekliyor')).toBeInTheDocument()
+    expect(screen.getByText('Red nedeni: Tutar hesabımıza geçmedi')).toBeInTheDocument()
+    expect(screen.queryByText('Geri çekildi')).not.toBeInTheDocument()
+    expect(screen.queryByText(money('₺500,00'))).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Yeni havale bildir' })).toHaveAttribute('href', '/havale-bildirimi')
+    // the payment list is still there
+    expect(await screen.findByText('MKB-2026-000007')).toBeInTheDocument()
+  })
+
+  it('shows no "Havale bildirimlerim" block when there is no open notice', async () => {
+    open('/odemelerim')
+    await screen.findByText('MKB-2026-000007')
+    expect(screen.queryByRole('heading', { name: 'Havale bildirimlerim' })).not.toBeInTheDocument()
+  })
+
+  it('writes "Tek çekim" for a card payment, but nothing about installments for havale, cash or office card', async () => {
+    api.fetchMyPayments.mockResolvedValue([
+      payment({ id: 'a', method: 'card', receiptNo: 'MKB-2026-000001' }),
+      payment({ id: 'b', method: 'havale', receiptNo: 'MKB-2026-000002' }),
+      payment({ id: 'c', method: 'cash', receiptNo: 'MKB-2026-000003' }),
+      payment({ id: 'd', method: 'pos', receiptNo: 'MKB-2026-000004' }),
+    ])
+    open('/odemelerim')
+    const items = await screen.findAllByRole('listitem')
+    expect(within(items[0]).getByText(/Kart · Tek çekim/)).toBeInTheDocument()
+    expect(within(items[1]).getByText('Havale / EFT')).toBeInTheDocument()
+    expect(within(items[2]).getByText('Nakit')).toBeInTheDocument()
+    expect(within(items[3]).getByText('Ofiste kart')).toBeInTheDocument()
+    for (const item of items.slice(1)) expect(within(item).queryByText(/Tek çekim|taksit/)).not.toBeInTheDocument()
   })
 
   it('has a friendly empty state and an error state', async () => {

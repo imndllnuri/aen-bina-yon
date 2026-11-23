@@ -42,6 +42,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0003_charges.sql` | charge types, monthly plans, charge batches, charges, the split function and the charge RPCs (see "Charges" below) |
 | `supabase/migrations/0004_resident_charges.sql` | residents read their own charges: the visibility rule, `charge_status` and `unit_balances` views (see "Resident panel" below) |
 | `supabase/migrations/0005_payments.sql` | payments, allocations, receipt numbers, the mock checkout functions, `get_receipt`, `void_payment`, real paid amounts in the views, guards for paid lines (see "Payments" below) |
+| `supabase/migrations/0006_transfers.sql` | havale notices, the private `dekontlar` bucket, manual payments, the allocation engine, bank accounts, one visibility rule for "who may pay which line" (see "Havale notices and manual payments" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -192,9 +193,51 @@ installments, agreement), `/#/odeme/3d` (a FAKE bank screen with "Onayla" and "B
   (the demo company has it). A resident can mark their own debt "paid" with the mock without any money moving,
   so **before real residents and real money exist, switch it off:**
   `update public.companies set settings = settings - 'payment_mode';` and add the real provider (iyzico).
-- **Not yet:** manual cash / POS entry, refunds, partial payments, overpayment credit (alacak) and the havale
-  approval queue (slice 7), notifications (slice 8), the real provider (later). Mock payments on the hosted
-  project are permanent unless an admin cancels them in Tahsilatlar.
+- **Not yet:** refunds, overpayment credit (alacak), pending / failed payment statuses, late fees (all need
+  the real provider), notifications (slice 8). Mock payments on the hosted project are permanent unless an
+  admin cancels them in Tahsilatlar. (Manual entry, havale notices and partial payments: slice 7, below.)
+
+### Havale notices and manual payments (slice 7)
+
+The two offline channels of the plan. Resident page **Havale Bildir** (`/#/havale-bildirimi`): the IBAN cards
+with a copy button, a form (amount, date on the slip, name on the slip, note, the dekont file) and the list of
+the person's notices with their state. Admin pages: **Havale Onayları** (the queue, the dekont next to the
+facts, approve / reject, and the bank accounts residents see) and, in **Tahsilatlar**, **"Elle ödeme gir"**
+(cash, office card machine, or a bank transfer typed in by hand).
+
+- **A notice is not a payment.** The resident sends a notice; nothing is paid until an admin approves it.
+  Approve makes the payment, its allocations and the receipt in ONE transaction (`approve_transfer_notice`).
+  Reject needs a reason (3 to 300 characters) that the resident reads. A resident can withdraw a waiting
+  notice. Nobody writes `transfer_notices` directly: only `submit_ / cancel_ / approve_ / reject_transfer_notice`.
+- **The dekont is private.** Bucket `dekontlar`: private, 5 MB, PDF / JPG / PNG only, one folder per unit
+  (`<unit id>/<uuid>.<pdf|jpg|png>`). A resident can upload only into the folder of a unit they live in today;
+  the uploader and the admins of the site can read; nobody can change or delete from the browser. `submit_`
+  checks that the file exists, was uploaded by the same person and sits in the notice's unit folder, and that one
+  file belongs to one notice. The admin opens the file through a 5 minute signed link. The browser also checks
+  the first bytes of the file ("magic bytes"), so a program called `dekont.pdf` is refused before the upload.
+- **How money is spread (the allocation rule).** Oldest due date first, in integer kuruş; the last line may be
+  paid in part ("Kısmi"). The admin may pick the lines instead; the money then goes over the picked lines in the
+  same order. The preview (`preview_allocation`) and the real payment use the same function.
+- **A payer may only close lines the payer can SEE.** The visibility rule of slice 5 now lives in
+  `private.profile_sees_charge(person, ...)` and `resident_sees_charge` just asks it for the logged-in user. So
+  a tenant's havale is never spread over an owner-only line (e.g. Demirbaş), and the tenant's receipt never lists
+  one. With "somebody else" as payer (no profile), every line of the unit may be closed.
+- **No overpayment.** An amount bigger than what is open is refused (`amount_exceeds_debt`): there is no credit
+  (alacak) yet. The admin rejects such a notice with a reason. Refunds are not built either.
+- **Dates.** `paid_at` is the MONEY date (the date on the slip, or the day the cash arrived; noon Istanbul time
+  for an earlier day, the real time for today). The receipt number takes its year from the day it is ISSUED.
+  `payments.created_at` says when it was typed in. `payments.note` is printed on the receipt.
+- **Bank accounts** live in `companies.settings.bank_accounts` (at most 5; the IBAN is checked with the
+  ISO 7064 rule and stored without spaces) and are saved only by `save_bank_accounts`. **`companies.settings` can
+  no longer be written from the browser at all** (it holds the payment safety switch).
+- **These two channels do not need `payment_mode`.** They record money that really arrived. Only the fake card
+  checkout needs the safety switch.
+- **A cancelled havale payment:** the notice stays "approved" in the database, and the screens show "Ödeme
+  iptal edildi" (the lines are unpaid again).
+- **Idempotent.** A request id per form visit: a double click or a retry returns the same notice / payment.
+- **Left for slice 8 (notifications):** "new notice" for admins, "approved / rejected" for the resident. Until
+  then the resident reads the state and the reject reason on Havale Bildir and Ödemelerim. Left for slice 10:
+  the audit log entries, a settings screen for bank accounts, deleting old files of rejected notices.
 
 ### Testing the resident panel with your own account
 

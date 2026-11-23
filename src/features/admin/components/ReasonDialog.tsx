@@ -17,6 +17,10 @@ interface ReasonDialogProps {
   description: string
   confirmLabel: string
   onSubmit: (reason: string) => Promise<void>
+  /** The label of the text box. Default: "İptal nedeni". */
+  reasonLabel?: string
+  /** Turns what the action threw into a sentence. Default: the charge messages. */
+  describeError?: (error: unknown) => string
 }
 
 /** Cancelling money needs a written reason (it stays in the ledger). */
@@ -31,7 +35,7 @@ export function ReasonDialog(props: ReasonDialogProps) {
   )
 }
 
-function ReasonForm({ onOpenChange, title, description, confirmLabel, onSubmit }: ReasonDialogProps) {
+function ReasonForm({ onOpenChange, title, description, confirmLabel, onSubmit, reasonLabel = 'İptal nedeni', describeError = chargeErrorMessage }: ReasonDialogProps) {
   const [error, setError] = useState<string | null>(null)
   const {
     register,
@@ -45,7 +49,7 @@ function ReasonForm({ onOpenChange, title, description, confirmLabel, onSubmit }
       await onSubmit(values.reason)
       onOpenChange(false)
     } catch (caught) {
-      setError(chargeErrorMessage(caught))
+      setError(describeError(caught))
     }
   }
 
@@ -56,7 +60,7 @@ function ReasonForm({ onOpenChange, title, description, confirmLabel, onSubmit }
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit(submit)} noValidate className="space-y-4">
-        <FormField id="reason" label="İptal nedeni" required error={errors.reason?.message}>
+        <FormField id="reason" label={reasonLabel} required error={errors.reason?.message}>
           {(props) => <Textarea {...props} {...register('reason')} rows={3} maxLength={300} />}
         </FormField>
         <FormError message={error} />

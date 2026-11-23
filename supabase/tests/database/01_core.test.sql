@@ -33,10 +33,12 @@ select is((select count(*)::int from pg_tables where schemaname = 'public' and n
 -- add a name here ONLY when a migration adds a public function on purpose (and checks the caller inside).
 select is((select coalesce(array_agg(p.proname::text order by p.proname), array[]::text[]) from pg_proc p
            join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'),
-  array['accept_kvkk', 'create_charge_batch', 'delete_charge_batch', 'generate_recurring_batch', 'get_receipt',
-        'pay_charges_mock', 'preview_charge_batch', 'quote_payment', 'save_recurring_plan', 'set_profile_active',
-        'set_recurring_plan_active', 'void_charge', 'void_charge_batch', 'void_payment'],
-  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: charge functions; 0005: payment functions)');
+  array['accept_kvkk', 'approve_transfer_notice', 'cancel_transfer_notice', 'create_charge_batch', 'delete_charge_batch',
+        'generate_recurring_batch', 'get_bank_accounts', 'get_receipt', 'pay_charges_mock', 'preview_allocation',
+        'preview_charge_batch', 'quote_payment', 'record_manual_payment', 'reject_transfer_notice', 'save_bank_accounts',
+        'save_recurring_plan', 'set_profile_active', 'set_recurring_plan_active', 'submit_transfer_notice', 'void_charge',
+        'void_charge_batch', 'void_payment'],
+  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: charge functions; 0005: payment functions; 0006: transfer and manual payment functions)');
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (inserted as postgres, which bypasses RLS)

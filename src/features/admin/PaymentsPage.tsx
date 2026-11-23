@@ -9,27 +9,28 @@ import { ReceiptButton } from '@/features/receipt/ReceiptButton'
 import { formatDateTime } from '@/lib/format'
 import { formatKurus } from '@/lib/money'
 import { voidPayment, type AdminPaymentRow, type AdminSite } from './api'
+import { ManualPaymentDialog } from './components/ManualPaymentDialog'
 import { ReasonDialog } from './components/ReasonDialog'
 import { SiteGate } from './components/SiteGate'
 import { useAdminPayments, useRefreshCharges } from './queries'
 
-function PaymentsContent({ site }: { site: AdminSite }) {
+function PaymentsContent({ site, manualOpen, onManualOpenChange }: { site: AdminSite; manualOpen: boolean; onManualOpenChange: (open: boolean) => void }) {
   const payments = useAdminPayments(site.id)
   const refresh = useRefreshCharges(site.id)
   const [voiding, setVoiding] = useState<AdminPaymentRow | null>(null)
 
   if (payments.isPending) return <LoadingBlock />
   if (payments.isError) return <ErrorBlock text="Tahsilatlar şu anda yüklenemedi. Lütfen tekrar deneyin." onRetry={() => void payments.refetch()} />
-  if (payments.data.length === 0) {
-    return (
-      <p role="status" className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
-        Henüz bir tahsilat yok. Sakinler Borçlarım sayfasından ödeme yaptığında burada görünür.
-      </p>
-    )
-  }
 
   return (
     <>
+      <ManualPaymentDialog open={manualOpen} onOpenChange={onManualOpenChange} site={site} />
+      {payments.data.length === 0 && (
+        <p role="status" className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          Henüz bir tahsilat yok. Sakinler ödeme yaptığında ya da siz “Elle ödeme gir” ile nakit / kart / havale kaydettiğinizde burada görünür.
+        </p>
+      )}
+      {payments.data.length > 0 && (
       <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
@@ -57,9 +58,11 @@ function PaymentsContent({ site }: { site: AdminSite }) {
                 <TableCell>
                   <div>{methodLabel(payment.method)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {installmentsLabel(payment.installments)}
+                    {payment.method === 'card' ? installmentsLabel(payment.installments) : ''}
                     {payment.provider === 'mock' ? ' · deneme' : ''}
+                    {payment.provider === 'manual' ? 'elle giriş' : ''}
                   </div>
+                  {payment.note && <div className="text-xs">Not: {payment.note}</div>}
                 </TableCell>
                 <TableCell className={`text-right tabular-nums ${payment.status === 'voided' ? 'line-through' : ''}`}>
                   {formatKurus(payment.amountKurus + payment.feeKurus)}
@@ -84,6 +87,7 @@ function PaymentsContent({ site }: { site: AdminSite }) {
           </TableBody>
         </Table>
       </div>
+      )}
 
       {voiding && (
         <ReasonDialog
@@ -103,11 +107,16 @@ function PaymentsContent({ site }: { site: AdminSite }) {
   )
 }
 
-/** Tahsilatlar: every payment of the site, its receipt, and cancelling a payment. (Manual entry and refunds come later.) */
+/** Tahsilatlar: every payment of the site, its receipt, cancelling a payment, and "Elle ödeme gir" (cash, office card, havale). Refunds come later. */
 export function AdminPaymentsPage() {
+  const [manualOpen, setManualOpen] = useState(false)
   return (
-    <SiteGate title="Tahsilatlar" description="Sakinlerin yaptığı ödemeler ve makbuzları. Hatalı ya da deneme bir ödemeyi iptal edebilirsiniz.">
-      {(site) => <PaymentsContent site={site} />}
+    <SiteGate
+      title="Tahsilatlar"
+      description="Sakinlerin yaptığı ve sizin kaydettiğiniz ödemeler, makbuzlarıyla. Hatalı ya da deneme bir ödemeyi iptal edebilirsiniz."
+      actions={() => <Button onClick={() => setManualOpen(true)}>Elle ödeme gir</Button>}
+    >
+      {(site) => <PaymentsContent site={site} manualOpen={manualOpen} onManualOpenChange={setManualOpen} />}
     </SiteGate>
   )
 }

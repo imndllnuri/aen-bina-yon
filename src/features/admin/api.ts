@@ -588,12 +588,14 @@ export interface AdminPaymentRow {
   installments: number
   status: 'approved' | 'voided'
   voidReason: string | null
+  /** Written by the admin when the payment was entered by hand. */
+  note: string | null
 }
 
 export async function fetchAdminPayments(siteId: string): Promise<AdminPaymentRow[]> {
   const { data, error } = await client()
     .from('payments')
-    .select('id, receipt_no, paid_at, unit_label, payer_name, amount, fee, method, provider, installments, status, void_reason, units!inner(blocks!inner(site_id))')
+    .select('id, receipt_no, paid_at, unit_label, payer_name, amount, fee, method, provider, installments, status, void_reason, note, units!inner(blocks!inner(site_id))')
     .eq('units.blocks.site_id', siteId)
     .order('paid_at', { ascending: false })
     .limit(500)
@@ -611,6 +613,7 @@ export async function fetchAdminPayments(siteId: string): Promise<AdminPaymentRo
     installments: row.installments,
     status: row.status === 'voided' ? 'voided' : 'approved',
     voidReason: row.void_reason,
+    note: row.note,
   }))
 }
 
