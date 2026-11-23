@@ -80,7 +80,7 @@ alone, but the generated local defaults would turn hosted MFA and e-mail protect
 ### Hosted project status
 
 - Project `aen-bina-yonetimi` (ref `dogcevoorjlgbmykaqdy`, region eu-west-2). Signups are **off**
-  (invite-only). Migrations `0001` to `0007` and the demo data are applied, and the
+  (invite-only). Migrations `0001` to `0008` and the demo data are applied, and the
   `invite-resident` function is deployed.
 - The first admin is made by hand: create a user in the dashboard (Authentication → Users → Add
   user), then run this in the SQL Editor (demo site id from `seed.sql`):
@@ -321,6 +321,15 @@ PDF or PNG, never a real bank slip: dekonts are personal financial data, GitHub 
 of rejected or cancelled notices are not deleted yet. Put the tenant and the owner on the same unit, send a notice
 as the tenant, approve it as the admin, then check the receipt (PDF), the resident pages and "Elle ödeme gir".
 Before real residents join, the KVKK text must cover dekont uploads and how long they are kept.
+
+### Testing requests on the hosted demo
+
+Use **made-up photos** (a plant, a wall), never your real home or people: photos are private, but GitHub Pages is a demo host, and
+the photos of cancelled requests are not deleted yet. Put the tenant and the owner on the same unit, open a request as the tenant
+with up to 3 photos, then work through it as the admin: change the status, write a public answer and an **internal note** (the tenant
+must never see the note and must get no notification for it), solve it, rate it as the tenant, reopen it. On an iPhone, check that a
+photo taken upright is accepted and comes out upright. Before real residents join, the KVKK text must cover request photos and how
+long they are kept.
 
 ### Testing the resident panel with your own account
 
