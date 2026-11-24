@@ -2,9 +2,9 @@ import { cn } from '@/lib/utils'
 import { formatCell, isNumeric } from '../lib/sheets'
 import type { XCell, XSheet } from '../lib/xlsx'
 
-function Cell({ cell, bold }: { cell: XCell; bold?: boolean }) {
+function Cell({ cell, bold, first }: { cell: XCell; bold?: boolean; first?: boolean }) {
   return (
-    <td className={cn('px-3 py-2', isNumeric(cell) && 'text-right tabular-nums whitespace-nowrap', bold && 'font-semibold')}>
+    <td className={cn('px-3 py-2', (isNumeric(cell) || first) && 'whitespace-nowrap', isNumeric(cell) && 'text-right tabular-nums', bold && 'font-semibold')}>
       {formatCell(cell) || (cell.t === 'str' || cell.t === 'blank' ? '' : '—')}
     </td>
   )
@@ -39,7 +39,7 @@ export function ReportTable({ sheet, caption, emptyText }: { sheet: XSheet; capt
           {sheet.rows.map((row, r) => (
             <tr key={r} className="print:break-inside-avoid">
               {row.map((cell, c) => (
-                <Cell key={c} cell={cell} />
+                <Cell key={c} cell={cell} first={c === 0} />
               ))}
             </tr>
           ))}
@@ -48,7 +48,7 @@ export function ReportTable({ sheet, caption, emptyText }: { sheet: XSheet; capt
           <tfoot className="border-t-2 bg-muted/30">
             <tr>
               {sheet.total.map((cell, c) => (
-                <Cell key={c} cell={cell} bold />
+                <Cell key={c} cell={cell} bold first={c === 0} />
               ))}
             </tr>
           </tfoot>

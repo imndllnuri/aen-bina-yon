@@ -22,7 +22,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(213);
+select plan(221);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -619,6 +619,17 @@ select pg_temp.act_as(tt.u('AA'));
 select throws_ok($$insert into public.audit_log (table_name, action) values ('units', 'insert')$$, '42501', null, 'an admin cannot write a log row either');
 select throws_ok($$update public.audit_log set table_name = 'x'$$, '42501', null, '...nor change');
 select throws_ok($$delete from public.audit_log$$, '42501', null, '...nor delete');
+reset role; select set_config('request.jwt.claims', '', true);
+-- 12j0. the company information has length limits (the real guard; the screen checks too)
+select pg_temp.act_as(tt.u('AA'));
+select lives_ok($$update public.companies set phone = repeat('1', 30), email = 'a@b.com', address = repeat('a', 500), tax_no = repeat('1', 30) where id = tt.company('1')$$, 'the longest allowed company information is accepted');
+select throws_ok($$update public.companies set phone = repeat('1', 31) where id = tt.company('1')$$, '23514', null, 'a phone of 31 characters is refused');
+select throws_ok($$update public.companies set email = 'not-an-address' where id = tt.company('1')$$, '23514', null, 'an e-mail without @ is refused');
+select throws_ok($$update public.companies set email = repeat('a', 200) || '@b.com' where id = tt.company('1')$$, '23514', null, '...and one over 200 characters');
+select throws_ok($$update public.companies set address = repeat('a', 501) where id = tt.company('1')$$, '23514', null, 'an address of 501 characters is refused');
+select throws_ok($$update public.companies set tax_no = repeat('1', 31) where id = tt.company('1')$$, '23514', null, 'a tax number of 31 characters is refused');
+select throws_ok($$update public.companies set name = '' where id = tt.company('1')$$, '23514', null, 'an empty company name is refused');
+select lives_ok($$update public.companies set phone = null, email = null, address = null, tax_no = null where id = tt.company('1')$$, 'all of them can be empty');
 reset role; select set_config('request.jwt.claims', '', true);
 -- 12j. nobody changes the past: not even the owner
 select throws_ok($$update public.audit_log set actor_name = 'Biri' where id = (select min(id) from public.audit_log)$$, '42501', 'audit_log_is_append_only', 'as the table owner an update is still refused');
