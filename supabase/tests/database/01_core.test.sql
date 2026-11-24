@@ -33,13 +33,13 @@ select is((select count(*)::int from pg_tables where schemaname = 'public' and n
 -- add a name here ONLY when a migration adds a public function on purpose (and checks the caller inside).
 select is((select coalesce(array_agg(p.proname::text order by p.proname), array[]::text[]) from pg_proc p
            join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'),
-  array['accept_kvkk', 'add_request_comment', 'announcement_report', 'announcement_target', 'approve_transfer_notice', 'cancel_request', 'cancel_transfer_notice', 'create_charge_batch', 'create_request',
-        'delete_announcement', 'delete_charge_batch', 'generate_recurring_batch', 'get_bank_accounts', 'get_receipt', 'list_announcements',
+  array['accept_kvkk', 'add_request_comment', 'announcement_report', 'announcement_target', 'approve_transfer_notice', 'cancel_request', 'cancel_transfer_notice', 'create_charge_batch', 'create_request', 'dashboard_kpis',
+        'delete_announcement', 'delete_charge_batch', 'delete_charge_type', 'generate_recurring_batch', 'get_bank_accounts', 'get_receipt', 'list_announcements',
         'mark_announcement_read', 'pay_charges_mock', 'preview_allocation', 'preview_announcement_audience', 'preview_charge_batch',
-        'publish_announcement', 'quote_payment', 'rate_request', 'record_manual_payment', 'reject_transfer_notice', 'resend_announcement_unread',
-        'save_announcement', 'save_bank_accounts', 'save_recurring_plan', 'set_profile_active', 'set_recurring_plan_active', 'set_request_status', 'set_request_triage',
+        'publish_announcement', 'quote_payment', 'rate_request', 'record_manual_payment', 'reject_transfer_notice', 'report_attendance', 'report_collections', 'report_collections_summary', 'report_debts', 'report_monthly', 'report_residents', 'resend_announcement_unread',
+        'save_announcement', 'save_bank_accounts', 'save_charge_type', 'save_company_settings', 'save_recurring_plan', 'set_profile_active', 'set_recurring_plan_active', 'set_request_status', 'set_request_triage',
         'submit_transfer_notice', 'unpublish_announcement', 'update_request', 'void_charge', 'void_charge_batch', 'void_payment'],
-  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: charge functions; 0005: payment functions; 0006: transfer and manual payment functions; 0007: announcement functions; 0008: request functions)');
+  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: charge functions; 0005: payment functions; 0006: transfer and manual payment functions; 0007: announcement functions; 0008: request functions; 0009: dashboard, report, settings and charge type functions)');
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (inserted as postgres, which bypasses RLS)

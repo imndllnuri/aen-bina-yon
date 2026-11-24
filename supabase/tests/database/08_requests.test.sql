@@ -185,8 +185,8 @@ select ok(not exists (select 1 from pg_policies where schemaname = 'storage' and
   '...so nobody can change or delete a photo from a browser');
 select is((select count(*)::int from pg_policies where schemaname = 'public' and tablename in ('requests', 'request_events', 'request_comments', 'request_photos')), 4,
   'one read policy per table, nothing else (no write policy exists)');
-select is((select count(*)::int from pg_trigger where tgrelid in ('public.requests'::regclass, 'public.request_comments'::regclass) and not tgisinternal), 4,
-  'four triggers: touch, request insert / update, comment insert');
+select is((select count(*)::int from pg_trigger where tgrelid in ('public.requests'::regclass, 'public.request_comments'::regclass) and not tgisinternal and tgname <> 'zz_audit'), 4,
+  'four triggers: touch, request insert / update, comment insert (the audit trigger of 0009 is counted in the audit tests)');
 select lives_ok($$insert into public.notifications (profile_id, kind, title, event_key) values ('b1000000-0000-0000-0000-000000000001', 'request_new', 'x', 'k-a'),
                   ('b1000000-0000-0000-0000-000000000001', 'request_status', 'x', 'k-b'), ('b1000000-0000-0000-0000-000000000001', 'request_comment', 'x', 'k-c')$$,
   'the bell accepts the three new kinds');

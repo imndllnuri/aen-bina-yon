@@ -101,6 +101,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"audit_log": {
+                  Row: {
+                    "action": string,"actor_id": string | null,"actor_name": string | null,"at": string,"company_id": string | null,"id": number,"new_data": Json | null,"old_data": Json | null,"row_id": string | null,"site_id": string | null,"table_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"actor_id"?: string | null,"actor_name"?: string | null,"at"?: string,"company_id"?: string | null,"id"?: never,"new_data"?: Json | null,"old_data"?: Json | null,"row_id"?: string | null,"site_id"?: string | null,"table_name": string
+                  }
+                  Update: {
+                    "action"?: string,"actor_id"?: string | null,"actor_name"?: string | null,"at"?: string,"company_id"?: string | null,"id"?: never,"new_data"?: Json | null,"old_data"?: Json | null,"row_id"?: string | null,"site_id"?: string | null,"table_name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"blocks": {
                   Row: {
                     "created_at": string,"id": string,"name": string,"site_id": string
@@ -355,14 +369,14 @@ isOneToOne: false
                   ]
                 },"quote_requests": {
                   Row: {
-                    "building_type": string | null,"created_at": string,"email": string | null,"id": string,"il": string | null,"ilce": string | null,"message": string | null,"name": string,"phone": string | null,"status": string,"unit_count": number | null
+                    "admin_note": string | null,"building_type": string | null,"created_at": string,"email": string | null,"id": string,"il": string | null,"ilce": string | null,"message": string | null,"name": string,"phone": string | null,"status": string,"unit_count": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "building_type"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"il"?: string | null,"ilce"?: string | null,"message"?: string | null,"name": string,"phone"?: string | null,"status"?: string,"unit_count"?: number | null
+                    "admin_note"?: string | null,"building_type"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"il"?: string | null,"ilce"?: string | null,"message"?: string | null,"name": string,"phone"?: string | null,"status"?: string,"unit_count"?: number | null
                   }
                   Update: {
-                    "building_type"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"il"?: string | null,"ilce"?: string | null,"message"?: string | null,"name"?: string,"phone"?: string | null,"status"?: string,"unit_count"?: number | null
+                    "admin_note"?: string | null,"building_type"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"il"?: string | null,"ilce"?: string | null,"message"?: string | null,"name"?: string,"phone"?: string | null,"status"?: string,"unit_count"?: number | null
                   }
                   Relationships: [
                     
@@ -734,11 +748,19 @@ isOneToOne: false
 "create_request":
 { Args: { "p_category": string,"p_description": string,"p_location": string,"p_photos": (string)[],"p_priority": string,"p_requester": string,"p_title": string,"p_token": string,"p_unit": string }; Returns: string
                            },
+"dashboard_kpis":
+{ Args: { "p_site": string }; Returns: {
+              "accrued": number,"collected": number,"collected_for_month": number,"month": string,"open_requests": number,"overdue_amount": number,"overdue_units": number,"pending_notices": number,"rate_pct": number,"receivable": number
+            }[]
+                           },
 "delete_announcement":
 { Args: { "p_id": string }; Returns: undefined
                            },
 "delete_charge_batch":
 { Args: { "p_batch": string }; Returns: undefined
+                           },
+"delete_charge_type":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "generate_recurring_batch":
 { Args: { "p_plan": string }; Returns: string
@@ -796,6 +818,36 @@ isOneToOne: false
 "reject_transfer_notice":
 { Args: { "p_notice": string,"p_reason": string }; Returns: undefined
                            },
+"report_attendance":
+{ Args: { "p_site": string }; Returns: {
+              "block_name": string,"door_no": string,"land_share": number,"owners": string,"share_pct": number,"total_land_share": number,"unit_count": number,"unit_id": string
+            }[]
+                           },
+"report_collections":
+{ Args: { "p_from": string,"p_limit": number,"p_site": string,"p_to": string }; Returns: {
+              "amount": number,"fee": number,"method": string,"paid_at": string,"payer_name": string,"payment_id": string,"receipt_no": string,"unit_label": string
+            }[]
+                           },
+"report_collections_summary":
+{ Args: { "p_from": string,"p_site": string,"p_to": string }; Returns: {
+              "amount": number,"fee": number,"method": string,"payment_count": number
+            }[]
+                           },
+"report_debts":
+{ Args: { "p_limit": number,"p_site": string }; Returns: {
+              "balance": number,"block_name": string,"d1_30": number,"d31_60": number,"d61_90": number,"d90_plus": number,"door_no": string,"not_due": number,"owners": string,"phone": string,"unit_id": string,"unit_label": string
+            }[]
+                           },
+"report_monthly":
+{ Args: { "p_from": string,"p_site": string,"p_to": string }; Returns: {
+              "accrued": number,"collected": number,"collected_for_month": number,"month": string,"rate_pct": number
+            }[]
+                           },
+"report_residents":
+{ Args: { "p_site": string }; Returns: {
+              "block_name": string,"door_no": string,"email": string,"floor": number,"full_name": string,"gross_m2": number,"is_active": boolean,"land_share": number,"phone": string,"relation": string,"start_date": string,"unit_id": string
+            }[]
+                           },
 "resend_announcement_unread":
 { Args: { "p_id": string }; Returns: number
                            },
@@ -804,6 +856,12 @@ isOneToOne: false
                            },
 "save_bank_accounts":
 { Args: { "p_accounts": Json,"p_company": string }; Returns: undefined
+                           },
+"save_charge_type":
+{ Args: { "p_active": boolean,"p_company": string,"p_id": string,"p_name": string,"p_sort": number,"p_split": string,"p_tenant_visible": boolean }; Returns: string
+                           },
+"save_company_settings":
+{ Args: { "p_commission_payer": string,"p_company": string,"p_due_day": number,"p_fee_pct": Json,"p_grace_days": number,"p_late_fee_method": string,"p_late_fee_rate": number,"p_ydo_rate": number }; Returns: undefined
                            },
 "save_recurring_plan":
 { Args: { "p_amount_kurus": number,"p_charge_type": string,"p_day": number,"p_description": string,"p_id": string,"p_karar_date": string,"p_karar_no": string,"p_name": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
