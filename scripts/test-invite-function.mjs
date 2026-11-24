@@ -199,6 +199,7 @@ try {
     sql(`delete from public.units where block_id in ('${ids.block1}', '${ids.block2}');
          delete from public.blocks where site_id in ('${ids.site1}', '${ids.site2}');
          delete from public.sites where company_id in ('${ids.company1}', '${ids.company2}');
+         delete from public.charge_types where company_id in ('${ids.company1}', '${ids.company2}');
          delete from public.companies where id in ('${ids.company1}', '${ids.company2}');`)
   } catch (error) {
     console.error('cleanup problem:', error.message)
