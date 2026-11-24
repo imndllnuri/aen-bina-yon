@@ -19,6 +19,9 @@ describe('month arithmetic', () => {
     expect(monthInputToDate('2026-11')).toBe('2026-11-01')
     expect(monthInputToDate('2026-13')).toBeNull()
     expect(monthInputToDate('2026-00')).toBeNull()
+    expect(monthInputToDate('x2026-11')).toBeNull() // nothing before the month
+    expect(monthInputToDate('12026-11')).toBeNull()
+    expect(monthInputToDate('2026-11x')).toBeNull() // nothing after it
     expect(monthInputToDate('')).toBeNull()
     expect(monthInputToDate('2026-11-05')).toBeNull()
     expect(dateToMonthInput('2026-11-01')).toBe('2026-11')

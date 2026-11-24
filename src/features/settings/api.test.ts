@@ -31,6 +31,16 @@ describe('readRules', () => {
   })
 })
 
+describe('readRules edge cases', () => {
+  it('takes a due day from 1 to 28 only', () => {
+    for (const [day, expected] of [[1, 1], [28, 28], [29, 15], [31, 15], [0, 15], [-3, 15]] as const) expect(readRules({ rules: { due_day: day } }).dueDay).toBe(expected)
+  })
+  it('does not read an empty text as the number 0', () => {
+    const r = readRules({ ydo_rate: '', rules: { late_fee_rate: '  ', due_day: '' } })
+    expect(r).toMatchObject({ ydoRate: 25.49, lateFeeRate: 5, dueDay: 15 })
+  })
+})
+
 describe('rulesPayload (the form text as the numbers the database wants)', () => {
   const values = { dueDay: '20', ydoRate: '12,35', lateFeeRate: '5', lateFeeMethod: 'monthly' as const, graceDays: '7', commissionPayer: 'resident' as const, fee2: '2,5', fee3: '', fee6: ' ', fee9: '0' }
   it('turns comma numbers into numbers and leaves out an empty fee', () => {
@@ -104,6 +114,7 @@ describe('settingsErrorMessage', () => {
     const messages = codes.map((message) => settingsErrorMessage({ message }))
     expect(new Set(messages).size).toBe(codes.length)
     for (const m of messages) expect(m).not.toMatch(/_/)
+    for (const m of messages) expect(m).not.toMatch(/şu anda yapılamadı/) // each one is specific, none is the calm "something went wrong"
   })
   it('says "no permission" for a refusal, and something calm for anything else', () => {
     expect(settingsErrorMessage({ code: '42501' })).toBe('Bu işlem için yetkiniz yok.')

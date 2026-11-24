@@ -25,7 +25,7 @@ describe('fetchKpis', () => {
   })
   it('throws when there is no row or the database refuses', async () => {
     client.rpc.mockResolvedValue({ data: [], error: null })
-    await expect(fetchKpis('s1')).rejects.toThrow()
+    await expect(fetchKpis('s1')).rejects.toThrow('no dashboard row')
     client.rpc.mockResolvedValue({ data: null, error: { message: 'not allowed', code: '42501' } })
     await expect(fetchKpis('s1')).rejects.toMatchObject({ code: '42501' })
   })

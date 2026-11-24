@@ -16,6 +16,9 @@ describe('niceMax (the round top of the scale)', () => {
       for (const tick of ticksFor(niceMax(v))) expect(Number.isInteger(tick / 100)).toBe(true)
     }
   })
+  it('keeps a value that is exactly a step (no needless jump to the next step)', () => {
+    for (const v of [200_00, 400_00, 800_00, 1000_00, 2000_00, 40_000_00]) expect(niceMax(v)).toBe(v)
+  })
   it('gives an empty chart (or a tiny one) a scale of 100 TL', () => {
     expect(niceMax(0)).toBe(100_00)
     expect(niceMax(-5)).toBe(100_00)

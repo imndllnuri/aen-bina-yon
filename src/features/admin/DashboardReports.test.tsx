@@ -142,6 +142,12 @@ describe('Genel Bakış (dashboard)', () => {
     const latest = await screen.findByRole('table', { name: 'Son ödemeler' })
     expect(plain(within(latest).getAllByRole('row')[1]?.textContent)).toBe('23.11.2026 14:05A Blok · 1Nakit₺24,00')
   })
+  it('shows a dash for a unit whose owner is not known', async () => {
+    reports.fetchDebts.mockResolvedValue([debt({ owners: null })])
+    open()
+    const debts = await screen.findByRole('table', { name: 'En çok borcu olan daireler' })
+    expect(plain(within(debts).getAllByRole('row')[1]?.textContent)).toBe('A Blok · 1—₺323,00')
+  })
   it('says so when there is no debt and no payment', async () => {
     reports.fetchDebts.mockResolvedValue([])
     reports.fetchCollections.mockResolvedValue([])
@@ -216,6 +222,16 @@ describe('Raporlar', () => {
     expect(block?.parentElement?.className).toContain('print:block')
     expect(plain(block?.parentElement?.textContent ?? '')).toContain('Demo Sitesi · Düzenlenme tarihi: 24.11.2026')
   })
+  it('hides the tabs, the filters and the buttons on paper, and the print title on the screen', async () => {
+    open()
+    await screen.findByRole('table', { name: 'Borç Listesi (yaşlandırma)' })
+    const classes = (el: Element | null | undefined) => (el?.className ?? '').split(' ')
+    const title = screen.getAllByText('Borç Listesi (yaşlandırma)').find((el) => el.tagName === 'H1')
+    expect(classes(title?.parentElement)).toEqual(expect.arrayContaining(['hidden', 'print:block'])) // not on screen, yes on paper
+    expect(classes(screen.getByRole('button', { name: /Excel’e aktar/ }).parentElement?.parentElement)).toContain('print:hidden')
+    expect(classes(screen.getByRole('tablist').parentElement)).toContain('print:hidden')
+    expect(classes(screen.getByRole('heading', { level: 1, name: 'Raporlar' }).closest('header'))).toContain('print:hidden')
+  })
   it('turns both buttons off when the report is empty', async () => {
     reports.fetchDebts.mockResolvedValue([])
     open()
@@ -253,6 +269,16 @@ describe('Raporlar', () => {
       for (const call of reports.fetchCollections.mock.calls) expect(call[1] <= call[2]).toBe(true) // every question that WAS asked had a good range
       expect(screen.getByRole('button', { name: /Excel’e aktar/ })).toBeDisabled()
     })
+    it('shows no summary under a wrong range', async () => {
+      open('/yonetim/raporlar?r=tahsilat')
+      await screen.findByLabelText('Yönteme göre toplam')
+      fireEvent.change(screen.getByLabelText('Başlangıç'), { target: { value: '2026-11-30' } })
+      expect(await screen.findByText(/Başlangıç tarihi bitişten önce olmalı/)).toBeInTheDocument()
+      // the page still asks for "today to today" in the background: wait for that answer, then the box must still be hidden
+      await waitFor(() => expect(reports.fetchCollectionsSummary).toHaveBeenCalledWith('s1', '2026-11-24', '2026-11-24'))
+      await new Promise((resolve) => setTimeout(resolve, 30))
+      expect(screen.queryByLabelText('Yönteme göre toplam')).not.toBeInTheDocument()
+    })
     it('refuses a period longer than about 3 years', async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
       open('/yonetim/raporlar?r=tahsilat')
@@ -272,6 +298,22 @@ describe('Raporlar', () => {
       const rows = within(table).getAllByRole('row')
       expect(plain(rows[1]?.textContent)).toContain('Ekim 2026')
       expect(plain(rows[3]?.textContent)).toBe('Toplam₺245,00₺39,00₺0,00—')
+    })
+    it('allows 60 months (59 steps) and refuses 61', async () => {
+      open('/yonetim/raporlar?r=aylik')
+      await screen.findByRole('table', { name: 'Aylık Tahakkuk – Tahsilat Raporu' })
+      fireEvent.change(screen.getByLabelText('İlk ay'), { target: { value: '2021-12' } }) // to 2026-11: 60 months in all
+      await waitFor(() => expect(reports.fetchMonthly).toHaveBeenCalledWith('s1', '2021-12-01', '2026-11-01'))
+      expect(screen.queryByText(/en fazla 60 ay seçebilirsiniz/)).not.toBeInTheDocument()
+      fireEvent.change(screen.getByLabelText('İlk ay'), { target: { value: '2021-11' } }) // 61 months
+      expect(await screen.findByText(/en fazla 60 ay seçebilirsiniz/)).toBeInTheDocument()
+    })
+    it('ignores a month box that was emptied', async () => {
+      open('/yonetim/raporlar?r=aylik')
+      await screen.findByRole('table', { name: 'Aylık Tahakkuk – Tahsilat Raporu' })
+      fireEvent.change(screen.getByLabelText('İlk ay'), { target: { value: '' } })
+      expect(screen.getByRole('table', { name: 'Aylık Tahakkuk – Tahsilat Raporu' })).toBeInTheDocument()
+      expect(screen.getByLabelText('İlk ay')).toHaveValue('2025-12')
     })
     it('refuses more than 60 months and an end before the start, with a message', async () => {
       open('/yonetim/raporlar?r=aylik')

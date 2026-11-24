@@ -22,7 +22,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(221);
+select plan(226);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -278,6 +278,7 @@ select is((select r.accrued from public.report_monthly(tt.site('X'), tt.m(8), tt
 select throws_ok($$select * from public.report_monthly(tt.site('X'), tt.m(0), tt.m(1))$$, 'P0001', 'range_invalid', 'the end before the start is refused');
 select throws_ok($$select * from public.report_monthly(tt.site('X'), null, tt.m(1))$$, 'P0001', 'range_invalid', 'no start is refused');
 select throws_ok($$select * from public.report_monthly(tt.site('X'), tt.m(60), tt.m(0))$$, 'P0001', 'range_invalid', 'more than 60 months is refused');
+select lives_ok($$select * from public.report_monthly(tt.site('X'), tt.m(59), tt.m(0))$$, 'exactly 60 months (59 steps back) is fine');
 select lives_ok($$select * from public.report_monthly(tt.site('X'), tt.m(59), tt.m(0))$$, '...exactly 60 months is fine');
 reset role; select set_config('request.jwt.claims', '', true);
 
@@ -327,6 +328,10 @@ select is((select string_agg(coalesce(s.method, 'TOTAL') || ':' || s.payment_cou
 select throws_ok($$select * from public.report_collections(tt.site('X'), tt.today(), tt.today() - 1, null)$$, 'P0001', 'range_invalid', 'the end before the start is refused');
 select throws_ok($$select * from public.report_collections(tt.site('X'), tt.today() - 1101, tt.today(), null)$$, 'P0001', 'range_invalid', 'more than 1100 days is refused');
 select throws_ok($$select * from public.report_collections_summary(tt.site('X'), null, tt.today())$$, 'P0001', 'range_invalid', '...and no start date');
+select throws_ok($$select * from public.report_collections_summary(tt.site('X'), tt.today(), tt.today() - 1)$$, 'P0001', 'range_invalid', 'the summary also refuses an end before the start');
+select throws_ok($$select * from public.report_collections_summary(tt.site('X'), tt.today() - 1101, tt.today())$$, 'P0001', 'range_invalid', '...and more than 1100 days');
+select lives_ok($$select * from public.report_collections_summary(tt.site('X'), tt.today() - 1100, tt.today())$$, 'exactly 1100 days is fine for the summary');
+select lives_ok($$select * from public.report_collections(tt.site('X'), tt.today() - 1100, tt.today(), null)$$, '...and for the list');
 reset role; select set_config('request.jwt.claims', '', true);
 select pg_temp.act_as(tt.u('AB'));
 select is((select count(*)::int from public.report_collections(tt.site('Y'), tt.m(1), tt.today(), null)), 0, 'Site Y has no payment and sees none of Site X''s');
@@ -534,14 +539,21 @@ select is((tt.last_audit('units', 'insert') ->> 'row_id'), (select v::text from 
 select is((tt.last_audit('units', 'insert') -> 'new_data' ->> 'door_no'), '88', '...and the new row');
 select is((tt.last_audit('units', 'insert') ->> 'old_data') is null, true, '...with no old data');
 select is((tt.last_audit('units', 'insert') ->> 'site_id'), tt.site('X')::text, 'a unit finds its site through its block');
+-- the clock stands still inside a test, so updated_at would never differ: put an old time back first (the touch trigger is switched off for that one statement)
+alter table public.units disable trigger units_touch_updated_at;
+update public.units set updated_at = now() - interval '2 days' where id = (select v from ids where name = 'u88');
+alter table public.units enable trigger units_touch_updated_at;
 select pg_temp.act_as(tt.u('AA'));
 select lives_ok($$update public.units set floor = 3 where id = (select v from ids where name = 'u88')$$, 'a change');
 reset role; select set_config('request.jwt.claims', '', true);
 select is((tt.last_audit('units', 'update') -> 'old_data')::text || '>' || (tt.last_audit('units', 'update') -> 'new_data')::text, '{"floor": 2}>{"floor": 3}', 'the update stores just {floor: 2} > {floor: 3}');
 create temp table marks (name text primary key, v bigint);
+alter table public.units disable trigger units_touch_updated_at;
+update public.units set updated_at = now() - interval '2 days' where id = (select v from ids where name = 'u88');
+alter table public.units enable trigger units_touch_updated_at;
 insert into marks select 'm', tt.mark();
 select pg_temp.act_as(tt.u('AA'));
-select lives_ok($$update public.units set floor = 3 where id = (select v from ids where name = 'u88')$$, 'the same value again');
+select lives_ok($$update public.units set floor = 3 where id = (select v from ids where name = 'u88')$$, 'the same value again (updated_at moves by itself, the touch trigger does that)');
 reset role; select set_config('request.jwt.claims', '', true);
 select is(tt.audit_since((select v from marks where name = 'm'), 'units'), 0, '...writes NO log row (nothing changed; updated_at alone is not a change)');
 -- a unit with a resident is deleted: its residents go with it, and nothing raises

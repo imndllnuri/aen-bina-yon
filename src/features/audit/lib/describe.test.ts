@@ -81,3 +81,14 @@ describe('summarize and headline', () => {
     expect(summarize(row({ action: 'update' }))).toBe('')
   })
 })
+
+describe('details that were easy to get wrong', () => {
+  it('shows a total (a batch) as money, like an amount and a fee', () => {
+    expect(plain(formatValue('total', 1234.5))).toBe('₺1.234,50')
+  })
+  it('lists changed columns for an update only, never for an insert or a delete', () => {
+    expect(changedKeys(row({ action: 'update', newData: { status: 'voided' } }))).toEqual(['status'])
+    expect(changedKeys(row({ action: 'insert', newData: { amount: 5 } }))).toEqual([])
+    expect(changedKeys(row({ action: 'delete', oldData: { amount: 5 }, newData: { amount: 5 } }))).toEqual([])
+  })
+})

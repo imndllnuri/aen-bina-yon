@@ -22,6 +22,8 @@ describe('formatCell', () => {
   it('knows which cells are numbers (they go to the right)', () => {
     expect(isNumeric({ t: 'money', kurus: 1 })).toBe(true)
     expect(isNumeric({ t: 'pct', v: 1 })).toBe(true)
+    expect(isNumeric({ t: 'dec4', v: 1 })).toBe(true)
+    expect(isNumeric({ t: 'int', v: 1 })).toBe(true)
     expect(isNumeric({ t: 'str', v: 'x' })).toBe(false)
     expect(isNumeric({ t: 'date', v: '2026-01-01' })).toBe(false)
     expect(isNumeric(undefined)).toBe(false)
@@ -93,6 +95,9 @@ describe('collectionsSheet', () => {
 
 describe('monthlySheet', () => {
   const m = (over: Partial<MonthRow> = {}): MonthRow => ({ month: '2026-11-01', accruedKurus: 24200, collectedKurus: 2900, collectedForMonthKurus: 1500, ratePct: 6.2, ...over })
+  it('has the five headings in this order', () => {
+    expect(monthlySheet([]).head).toEqual(['Ay', 'Tahakkuk', 'Bu ay tahsil edilen', 'Bu ayın borçlarından ödenen', 'Oran (ödenen / tahakkuk)'])
+  })
   it('names the month, and adds the three money columns (no total of the rate)', () => {
     const sheet = monthlySheet([m(), m({ month: '2026-10-01', accruedKurus: 300, collectedKurus: 1000, collectedForMonthKurus: 0, ratePct: 0 })])
     expect(sheet.rows[0]?.[0]).toEqual({ t: 'str', v: 'Kasım 2026' })

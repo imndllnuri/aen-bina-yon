@@ -12,6 +12,7 @@ describe('quote requests', () => {
     client.from.mockReturnValue(q.query)
     expect(await fetchQuotes()).toEqual([{ id: 'q1', name: 'Ali', phone: '0532', email: null, buildingType: 'Apartman', unitCount: 16, il: 'Kayseri', ilce: 'Melikgazi', message: 'Merhaba', status: 'new', adminNote: null, createdAt: '2026-11-20T08:00:00Z' }])
     expect(callsTo(q.calls, 'order')).toEqual([['created_at', { ascending: false }]])
+    expect(callsTo(q.calls, 'limit')).toEqual([[500]])
   })
   it('names the six statuses, the five of the plan and the old "closed"', () => {
     expect(QUOTE_STATUS.map((s) => s.code)).toEqual(['new', 'contacted', 'offered', 'won', 'lost', 'closed'])

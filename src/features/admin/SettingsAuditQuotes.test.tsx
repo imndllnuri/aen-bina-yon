@@ -112,6 +112,20 @@ describe('Ayarlar', () => {
     expect(settings.saveRules.mock.calls[0]?.[0]).toBe('c1')
     expect(settings.saveRules.mock.calls[0]?.[1]).toMatchObject({ ydoRate: '12,5', commissionPayer: 'resident', fee2: '2,5', dueDay: '15' })
   })
+  it('reloads the settings after the rules are saved, and the rules form is clean again', async () => {
+    const user = setup()
+    open()
+    const ydo = await screen.findByLabelText(/Yıllık YDO oranı/)
+    await user.clear(ydo)
+    await user.type(ydo, '12,5')
+    expect(screen.getAllByRole('button', { name: 'Kaydet' })[1]).toBeEnabled()
+    const before = settings.fetchCompany.mock.calls.length
+    await user.click(screen.getAllByRole('button', { name: 'Kaydet' })[1] as HTMLElement)
+    await waitFor(() => expect(settings.saveRules).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(settings.fetchCompany.mock.calls.length).toBeGreaterThan(before)) // the screen asked again
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Kaydet' })[1]).toBeDisabled()) // nothing left to save
+    expect(toast.success).toHaveBeenCalledWith('Ayarlar kaydedildi.')
+  })
   it('turns the fee boxes off while the management pays the commission', async () => {
     const user = setup()
     open()
@@ -306,6 +320,28 @@ describe('İşlem Geçmişi', () => {
     await user.click(screen.getByRole('button', { name: 'Temizle' }))
     expect(screen.getByRole('button', { name: 'Süz' })).toBeEnabled()
   })
+  it('goes back to the first page when a filter is applied', async () => {
+    audit.fetchAudit.mockResolvedValue({ rows: [row()], total: 120 })
+    const user = setup()
+    open()
+    await user.click(await screen.findByRole('button', { name: 'Sonraki' }))
+    await waitFor(() => expect(audit.fetchAudit.mock.calls.at(-1)?.[2]).toBe(1))
+    await user.selectOptions(screen.getByLabelText('Kayıt türü'), 'units')
+    await user.click(screen.getByRole('button', { name: 'Süz' }))
+    await waitFor(() => expect(audit.fetchAudit.mock.calls.at(-1)?.[1]).toMatchObject({ table: 'units' }))
+    expect(audit.fetchAudit.mock.calls.at(-1)?.[2]).toBe(0)
+    expect(await screen.findByText(/sayfa 1 \/ 3/)).toBeInTheDocument()
+  })
+  it('does not ask for a wrong range even when the form is sent without the button (Enter key)', async () => {
+    open()
+    await screen.findByRole('table', { name: 'İşlem geçmişi' })
+    fireEvent.change(screen.getByLabelText('Başlangıç'), { target: { value: '2026-11-20' } })
+    fireEvent.change(screen.getByLabelText('Bitiş'), { target: { value: '2026-11-01' } })
+    audit.fetchAudit.mockClear()
+    fireEvent.submit(screen.getByRole('form', { name: 'Süzgeçler' }))
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(audit.fetchAudit).not.toHaveBeenCalled()
+  })
   it('pages through the log 50 at a time', async () => {
     audit.fetchAudit.mockResolvedValue({ rows: [row()], total: 120 })
     const user = setup()
@@ -399,6 +435,32 @@ describe('Teklif Talepleri', () => {
     await user.type(within(dialog).getByLabelText(/Notunuz/), 'Yarın ararım')
     await user.click(within(dialog).getByRole('button', { name: 'Notu kaydet' }))
     await waitFor(() => expect(quotes.updateQuoteNote).toHaveBeenCalledWith('q1', 'Yarın ararım'))
+  })
+  it('highlights only the new requests', async () => {
+    open()
+    await screen.findByText('Ali Veli')
+    const badges = Array.from(document.querySelectorAll('[data-slot="badge"]'))
+    const fresh = badges.find((b) => b.textContent === 'Yeni')
+    const won = badges.find((b) => b.textContent === 'Kazanıldı')
+    expect(fresh?.className).toContain('bg-primary')
+    expect(won?.className).not.toContain('bg-primary')
+  })
+  it('loads the list again after a delete and after a note', async () => {
+    const user = setup()
+    open()
+    await user.click((await screen.findAllByRole('button', { name: 'Mesaj ve not' }))[0] as HTMLElement)
+    const noteDialog = await screen.findByRole('dialog')
+    await user.type(within(noteDialog).getByLabelText(/Notunuz/), 'Arandı')
+    let before = quotes.fetchQuotes.mock.calls.length
+    await user.click(within(noteDialog).getByRole('button', { name: 'Notu kaydet' }))
+    await waitFor(() => expect(quotes.updateQuoteNote).toHaveBeenCalled())
+    await waitFor(() => expect(quotes.fetchQuotes.mock.calls.length).toBeGreaterThan(before))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await user.click(await screen.findByRole('button', { name: 'Ali Veli talebini sil' }))
+    before = quotes.fetchQuotes.mock.calls.length
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Sil' }))
+    await waitFor(() => expect(quotes.deleteQuote).toHaveBeenCalledWith('q1'))
+    await waitFor(() => expect(quotes.fetchQuotes.mock.calls.length).toBeGreaterThan(before))
   })
   it('asks before deleting, then deletes', async () => {
     const user = setup()

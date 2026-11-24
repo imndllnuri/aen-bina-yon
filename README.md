@@ -44,6 +44,8 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0005_payments.sql` | payments, allocations, receipt numbers, the mock checkout functions, `get_receipt`, `void_payment`, real paid amounts in the views, guards for paid lines (see "Payments" below) |
 | `supabase/migrations/0006_transfers.sql` | havale notices, the private `dekontlar` bucket, manual payments, the allocation engine, bank accounts, one visibility rule for "who may pay which line" (see "Havale notices and manual payments" below) |
 | `supabase/migrations/0007_announcements.sql` | announcements (plain text), who-gets-it targets, recipients, read receipts, the bell (`notifications`) and the triggers that ring it (see "Announcements and the bell" below) |
+| `supabase/migrations/0008_requests.sql` | requests, the timeline, comments (with internal notes), photos, the private `talep-fotolari` bucket and seven checked functions (see "Requests" below) |
+| `supabase/migrations/0009_admin_tools.sql` | the audit log (`audit_log`, one trigger on twelve tables), dashboard and report functions, charge-type and settings functions, quote-request status (see "Dashboard, reports, settings and audit log" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -313,6 +315,35 @@ request (`/#/yonetim/talepler/<id>`: status, category and priority, comments and
   comments with photos after the request exists, e-mail / SMS, cleaning up photos of cancelled requests, editing the category list
   (slice 10), a counter on the admin dashboard (slice 10). Photos can show people and the inside of a home: the KVKK text must cover them
   and say how long they are kept.
+
+### Dashboard, reports, settings and audit log (slice 10)
+
+Admin pages: **Genel Bakış** (`/#/yonetim`), **Raporlar** (`/#/yonetim/raporlar`), **Ayarlar** (`/#/yonetim/ayarlar`),
+**İşlem Geçmişi** (`/#/yonetim/islem-gecmisi`) and **Teklif Talepleri** (`/#/yonetim/teklif-talepleri`).
+
+- **Numbers come from the database, not from the browser.** Ten checked functions (`dashboard_kpis`, `report_monthly`, `report_debts`,
+  `report_collections`, `report_collections_summary`, `report_residents`, `report_attendance`, `save_charge_type`, `delete_charge_type`,
+  `save_company_settings`). Each one checks inside that the caller administers that site (or that company).
+- **What the words mean** (also written on the screens):
+  - *Tahakkuk* = lines that are not cancelled, in the month of their period (the month of the due date if there is no period).
+  - *Tahsilat* = cash of **approved** payments, in the Istanbul month of the payment (the card fee is not counted).
+  - *Oran* = what is paid so far of this month's lines ÷ this month's tahakkuk (empty when nothing was accrued).
+  - *Aging* works on what is **left** of each line today: not due yet, 1-30, 31-60, 61-90, 90+ days late.
+  - *Hazirun cetveli* = one row per unit, co-owners on one row, land share counted once, units without an owner are listed.
+- **Excel files** are written in the browser by a small writer of our own (no extra library). Money is a real number with the ₺ look,
+  dates are real dates, and text that looks like a formula (`=...`) stays text. "PDF" means the browser print dialog ("Yazdır / PDF").
+  The files carry names, phones and e-mails: treat them as personal data.
+- **Audit log** (`audit_log`): one trigger writes a row for every insert, update and delete on twelve tables (charges, batches, plans,
+  charge types, payments, transfer notices, units, residents, announcements, requests, site members, companies). An update stores only
+  the columns that changed. The trigger **fails closed**: if the log row cannot be written, the change is refused. Nobody can change or
+  delete log rows, even the table owner (a trigger refuses). Site admins read their site's rows; company admins read company rows.
+  There is **no clean-up job**: decide how long the log is kept (KVKK) before real residents join. Rows start from the day 0009 is applied.
+- **Settings:** *in use now* = the YDO rate (warning on aidat increases), who pays the card fee and the fee percentages (they change
+  what a resident pays at once), the due day (pre-filled in charge forms). *Saved only* = late-fee rate, method and grace days (there is
+  no automatic late fee yet). The six default charge types can be switched off but never deleted; your own types can be deleted only
+  if nothing uses them. The `payment_mode` safety switch is **not** changeable from the screen.
+- **Not built (named on purpose):** admin invites, editing request categories, message templates, logo upload, automatic late fees,
+  deleting old dekont and photo files, an allowed list for installments.
 
 ### Testing havale notices on the hosted demo
 

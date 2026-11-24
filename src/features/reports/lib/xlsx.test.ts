@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { buildXlsx, cellXml, cleanText, columnName, crc32, dateSerial, dateTimeSerial, escapeXml, safeSheetName, zipStored, type XSheet } from './xlsx'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildXlsx, cellXml, cleanText, columnName, crc32, dateSerial, dateTimeSerial, downloadXlsx, escapeXml, safeSheetName, XLSX_MIME, zipStored, type XSheet } from './xlsx'
 
 // A tiny unzip for "stored" zips, to look INSIDE the file we made (and to check every checksum).
 function unzip(bytes: Uint8Array): Record<string, string> {
@@ -154,5 +154,112 @@ describe('serial numbers and column letters', () => {
   })
   it('names columns A..Z, AA..', () => {
     expect([0, 1, 25, 26, 27, 51, 52, 701, 702].map(columnName)).toEqual(['A', 'B', 'Z', 'AA', 'AB', 'AZ', 'BA', 'ZZ', 'AAA'])
+  })
+})
+
+describe('the zip is one that every program opens', () => {
+  it('stores every file (method 0) with UTF-8 names, in the local header and in the central directory', () => {
+    const zip = buildXlsx(sheet())
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
+    let at = 0
+    let files = 0
+    while (view.getUint32(at, true) === 0x04034b50) {
+      expect(view.getUint16(at + 8, true)).toBe(0) // "stored": the bytes are the file as it is
+      expect(view.getUint16(at + 6, true) & 0x0800).toBe(0x0800) // the name is UTF-8
+      at += 30 + view.getUint16(at + 26, true) + view.getUint32(at + 18, true)
+      files++
+    }
+    expect(files).toBe(6)
+    let central = 0
+    while (view.getUint32(at, true) === 0x02014b50) {
+      expect(view.getUint16(at + 10, true)).toBe(0)
+      at += 46 + view.getUint16(at + 28, true) + view.getUint16(at + 30, true) + view.getUint16(at + 32, true)
+      central++
+    }
+    expect(central).toBe(6)
+  })
+  it('says in the central directory where each file starts (the offset)', () => {
+    const zip = zipStored([
+      { name: 'a.txt', data: new TextEncoder().encode('bir') },
+      { name: 'b.txt', data: new TextEncoder().encode('iki') },
+    ])
+    const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength)
+    const start = view.getUint32(zip.length - 22 + 16, true)
+    expect(view.getUint32(start + 42, true)).toBe(0) // a.txt starts at the beginning
+    const second = start + 46 + 'a.txt'.length
+    expect(view.getUint32(second + 42, true)).toBe(30 + 'a.txt'.length + 3) // b.txt right after it
+    expect(view.getUint32(view.getUint32(second + 42, true), true)).toBe(0x04034b50)
+  })
+})
+
+describe('rows, styles and number looks', () => {
+  const wide = (): XSheet => ({
+    name: 'Tümü',
+    head: ['Metin', 'Para', 'Sayı', 'Oran', 'Pay', 'Gün', 'Zaman'],
+    rows: [
+      [{ t: 'str', v: 'a' }, { t: 'money', kurus: 150 }, { t: 'int', v: 7 }, { t: 'pct', v: 6.2 }, { t: 'dec4', v: 33.3333 }, { t: 'date', v: '2026-11-23' }, { t: 'datetime', v: '2026-11-23T14:05' }],
+      [{ t: 'str', v: 'b' }, { t: 'money', kurus: 0 }, { t: 'int', v: 8 }, { t: 'pct', v: 1 }, { t: 'dec4', v: 1 }, { t: 'date', v: '2026-11-24' }, { t: 'datetime', v: '2026-11-24T00:00' }],
+    ],
+    total: [{ t: 'str', v: 'T' }, { t: 'money', kurus: 150 }, { t: 'int', v: 15 }, { t: 'pct', v: 3 }, { t: 'dec4', v: 34.3333 }, { t: 'blank' }, { t: 'blank' }],
+  })
+  it('numbers the rows 1 (header), 2, 3 and the total 4, and every cell reference matches its row', () => {
+    const xml = unzip(buildXlsx(wide()))['xl/worksheets/sheet1.xml'] as string
+    expect(xml.match(/<row r="(\d+)">/g)).toEqual(['<row r="1">', '<row r="2">', '<row r="3">', '<row r="4">'])
+    expect(xml).toContain('<row r="2"><c r="A2"')
+    expect(xml).toContain('<row r="3"><c r="A3"')
+    expect(xml).toContain('<row r="4"><c r="A4"')
+  })
+  it('gives every kind of cell its own number look (style numbers 1-6) and the total row the bold ones (8-12)', () => {
+    const xml = unzip(buildXlsx(wide()))['xl/worksheets/sheet1.xml'] as string
+    expect(xml).toContain('<c r="B2" s="1"><v>1.5</v></c>')
+    expect(xml).toContain('<c r="C2" s="2"><v>7</v></c>')
+    expect(xml).toContain('<c r="D2" s="5"><v>6.2</v></c>')
+    expect(xml).toContain('<c r="E2" s="6"><v>33.3333</v></c>')
+    expect(xml).toContain('<c r="F2" s="3"><v>46349</v></c>')
+    expect(xml).toContain('<c r="G2" s="4">')
+    expect(xml).toContain('<c r="B4" s="9"><v>1.5</v></c>')
+    expect(xml).toContain('<c r="C4" s="10"><v>15</v></c>')
+    expect(xml).toContain('<c r="D4" s="11"><v>3</v></c>')
+    expect(xml).toContain('<c r="E4" s="12"><v>34.3333</v></c>')
+  })
+  it('defines those looks: money with ₺, dates as dd.mm.yyyy, percent, four decimals', () => {
+    const styles = unzip(buildXlsx(wide()))['xl/styles.xml'] as string
+    expect(styles).toContain('numFmtId="164" formatCode="#,##0.00&quot; ₺&quot;"')
+    expect(styles).toContain('numFmtId="165" formatCode="dd\\.mm\\.yyyy"')
+    expect(styles).toContain('numFmtId="166" formatCode="dd\\.mm\\.yyyy\\ hh:mm"')
+    expect(styles).toContain('numFmtId="167" formatCode="0.0&quot;%&quot;"')
+    expect(styles).toContain('numFmtId="168" formatCode="#,##0.0000"')
+    expect(styles).toContain('<cellXfs count="13">')
+  })
+})
+
+describe('downloadXlsx', () => {
+  const realCreate = URL.createObjectURL
+  const realRevoke = URL.revokeObjectURL
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    URL.createObjectURL = realCreate
+    URL.revokeObjectURL = realRevoke
+  })
+  it('names the file type, starts the download, and frees the link only later', () => {
+    vi.useFakeTimers()
+    const create = vi.fn(() => 'blob:abc')
+    const revoke = vi.fn()
+    URL.createObjectURL = create
+    URL.revokeObjectURL = revoke
+    const downloads: string[] = []
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push(`${this.download} ${this.href}`)
+    })
+    downloadXlsx('borc-listesi-2026-11-24.xlsx', sheet())
+    expect(create).toHaveBeenCalledTimes(1)
+    expect((create.mock.calls[0] as unknown as [Blob])[0].type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    expect(XLSX_MIME).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    expect(downloads).toEqual(['borc-listesi-2026-11-24.xlsx blob:abc'])
+    expect(document.querySelector('a[download]')).toBeNull() // the helper link is removed again
+    expect(revoke).not.toHaveBeenCalled() // the browser may still be reading the file
+    vi.advanceTimersByTime(10_000)
+    expect(revoke).toHaveBeenCalledWith('blob:abc')
   })
 })

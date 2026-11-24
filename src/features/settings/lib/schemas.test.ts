@@ -20,6 +20,11 @@ describe('parseDecimal', () => {
 })
 
 describe('rulesSchema (the limits of the database)', () => {
+  it('knows only the payers and the late fee methods of the database', () => {
+    for (const bad of ['both', 'nobody', '']) expect(rulesSchema.safeParse({ ...rules, commissionPayer: bad }).success).toBe(false)
+    for (const bad of ['weekly', 'yearly', '']) expect(rulesSchema.safeParse({ ...rules, lateFeeMethod: bad }).success).toBe(false)
+    for (const good of ['daily', 'monthly']) expect(rulesSchema.safeParse({ ...rules, lateFeeMethod: good }).success).toBe(true)
+  })
   it('accepts the usual values', () => {
     expect(rulesSchema.safeParse(rules).success).toBe(true)
     expect(rulesSchema.safeParse({ ...rules, commissionPayer: 'resident', fee2: '2,5', fee3: '3.46', fee6: '0', fee9: '10' }).success).toBe(true)
