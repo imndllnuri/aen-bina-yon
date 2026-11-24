@@ -28,13 +28,16 @@ export type ForgotValues = z.infer<typeof forgotSchema>
  * New password + repeat. For the invite page, `requireConsent` also demands the KVKK tick
  * (the tick is optional in the data so the same form type serves both pages).
  */
+/** The rule for a NEW password (one place: the invite page and the Profil page use it). */
+export const passwordField = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.`)
+  .refine((value) => new TextEncoder().encode(value).length <= MAX_PASSWORD_BYTES, 'Şifre çok uzun. Daha kısa bir şifre seçin.')
+
 export function passwordFormSchema(requireConsent: boolean) {
   return z
     .object({
-      password: z
-        .string()
-        .min(MIN_PASSWORD_LENGTH, `Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı.`)
-        .refine((value) => new TextEncoder().encode(value).length <= MAX_PASSWORD_BYTES, 'Şifre çok uzun. Daha kısa bir şifre seçin.'),
+      password: passwordField,
       confirm: z.string(),
       kvkk: z.boolean().optional(),
     })

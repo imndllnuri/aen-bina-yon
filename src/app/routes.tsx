@@ -2,7 +2,6 @@ import type { RouteObject } from 'react-router'
 import { AdminLayout } from '@/app/layouts/AdminLayout'
 import { PublicLayout } from '@/app/layouts/PublicLayout'
 import { ResidentLayout } from '@/app/layouts/ResidentLayout'
-import { PlaceholderPage } from '@/components/PlaceholderPage'
 import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
 import { SetPassword } from '@/features/auth/SetPassword'
@@ -33,14 +32,12 @@ import { RequestsPage } from '@/features/resident/RequestsPage'
 import { ThreeDSecurePage } from '@/features/resident/ThreeDSecurePage'
 import { TransferNoticePage } from '@/features/resident/TransferNoticePage'
 import { Contact } from '@/features/public/Contact'
+import { ProfilePage } from '@/features/profile/ProfilePage'
 import { Home } from '@/features/public/Home'
 import { Kvkk } from '@/features/public/Kvkk'
 import { Quote } from '@/features/public/Quote'
 import { Services } from '@/features/public/Services'
 import { RequireRole } from '@/lib/auth-guard'
-
-// Every page that a later feature slice will build is a placeholder for now.
-const page = (title: string, description?: string) => <PlaceholderPage title={title} description={description} />
 
 /**
  * Route table (plan, section 15, step 8). Kept separate from the router so tests can
@@ -81,7 +78,7 @@ export const routes: RouteObject[] = [
       { path: '/taleplerim', element: <RequestsPage /> },
       { path: '/taleplerim/yeni', element: <RequestCreatePage /> },
       { path: '/taleplerim/:id', element: <RequestDetailPage /> },
-      { path: '/profil', element: page('Profil') },
+      { path: '/profil', element: <ProfilePage /> },
     ],
   },
   {
@@ -106,6 +103,7 @@ export const routes: RouteObject[] = [
       { path: 'raporlar', element: <ReportsPage /> },
       { path: 'islem-gecmisi', element: <AuditPage /> },
       { path: 'ayarlar', element: <SettingsPage /> },
+      { path: 'profil', element: <ProfilePage /> },
     ],
   },
   { path: '*', element: <NotFound /> },

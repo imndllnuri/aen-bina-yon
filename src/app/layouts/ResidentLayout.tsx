@@ -9,7 +9,7 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react'
-import { NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet } from 'react-router'
 import { BrandLogo } from '@/components/BrandLogo'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { SidebarNav, type NavGroup, type NavItem } from '@/components/nav/SidebarNav'
@@ -67,6 +67,11 @@ export function ResidentLayout() {
           )}
           <div className="ml-auto flex items-center gap-1">
             <NotificationBell to="/bildirimler" />
+            <Button asChild variant="ghost" size="icon" className="md:hidden">
+              <Link to="/profil" aria-label="Profilim">
+                <User />
+              </Link>
+            </Button>
             <SignedInAs />
             <ThemeToggle />
             <Button variant="ghost" onClick={() => void signOut()}>

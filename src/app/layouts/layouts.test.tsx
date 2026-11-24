@@ -49,6 +49,19 @@ describe('AdminLayout', () => {
     mountLayout(<AdminLayout />, '/yonetim/daireler')
     expect(screen.getByRole('link', { name: 'Bildirimler' })).toHaveAttribute('href', '/yonetim/bildirimler')
   })
+
+  it('has "Profilim" in the side menu and as a button in the header (the side menu is hidden on a phone)', () => {
+    mountLayout(<AdminLayout />, '/yonetim/daireler')
+    const inMenu = within(screen.getAllByRole('navigation', { name: 'Ana menü' })[0] as HTMLElement).getByRole('link', { name: 'Profilim' })
+    expect(inMenu).toHaveAttribute('href', '/yonetim/profil')
+    const button = within(screen.getByRole('banner')).getByRole('link', { name: 'Profilim' })
+    expect(button).toHaveAttribute('href', '/yonetim/profil')
+    // on a phone the header button must show: it is hidden only from the size where the side menu takes over
+    for (let el: HTMLElement | null = button; el; el = el.parentElement) {
+      expect(el.classList.contains('hidden') || el.classList.contains('max-lg:hidden') || el.classList.contains('max-md:hidden')).toBe(false)
+    }
+    expect(button.className).toContain('lg:hidden')
+  })
 })
 
 describe('ResidentLayout', () => {
@@ -61,6 +74,20 @@ describe('ResidentLayout', () => {
     const sidebar = screen.getByRole('navigation', { name: 'Ana menü' })
     expect(within(sidebar).getAllByRole('link')).toHaveLength(8)
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument()
+  })
+
+  it('has a "Profilim" button in the header for phones (the bottom bar has no room for it; desktop has it in the side menu)', () => {
+    mountLayout(<ResidentLayout />, '/borclarim')
+    const button = screen.getByRole('link', { name: 'Profilim' })
+    expect(button).toHaveAttribute('href', '/profil')
+    expect(button.closest('header')).not.toBeNull()
+    // visible on a phone: nothing around it is hidden below the md size (it is only "md:hidden", because the side menu takes over)
+    for (let el: HTMLElement | null = button; el; el = el.parentElement) {
+      expect(el.classList.contains('hidden') || el.classList.contains('max-md:hidden') || el.classList.contains('max-sm:hidden')).toBe(false)
+    }
+    expect(button.className).toContain('md:hidden')
+    // and the side menu still has its own "Profil" entry
+    expect(within(screen.getByRole('navigation', { name: 'Ana menü' })).getByRole('link', { name: 'Profil' })).toHaveAttribute('href', '/profil')
   })
 
   it('has the bell in the header on every screen size (the phone bar has only five fixed tabs)', () => {

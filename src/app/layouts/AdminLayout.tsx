@@ -10,12 +10,13 @@ import {
   History,
   Menu,
   Settings,
+  User,
   Users,
   Wallet,
   Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Outlet } from 'react-router'
+import { Link, Outlet } from 'react-router'
 import { BrandLogo } from '@/components/BrandLogo'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
 import { SidebarNav, type NavGroup } from '@/components/nav/SidebarNav'
@@ -49,6 +50,7 @@ const groups: NavGroup[] = [
       { to: '/yonetim/teklif-talepleri', label: 'Teklif Talepleri', icon: FileText },
       { to: '/yonetim/ayarlar', label: 'Ayarlar', icon: Settings },
       { to: '/yonetim/islem-gecmisi', label: 'İşlem Geçmişi', icon: History },
+      { to: '/yonetim/profil', label: 'Profilim', icon: User },
     ],
   },
 ]
@@ -91,6 +93,11 @@ export function AdminLayout() {
           )}
           <div className="ml-auto flex items-center gap-1">
             <NotificationBell to="/yonetim/bildirimler" />
+            <Button asChild variant="ghost" size="icon" className="lg:hidden">
+              <Link to="/yonetim/profil" aria-label="Profilim">
+                <User />
+              </Link>
+            </Button>
             <SignedInAs />
             <ThemeToggle />
             <Button variant="ghost" onClick={() => void signOut()}>

@@ -57,6 +57,8 @@ describe('routes', () => {
     ['/taleplerim/3f2b8c1e-aaaa-bbbb-cccc-123456789012', '/taleplerim/:id'],
     ['/yonetim/talepler', 'talepler'],
     ['/yonetim/talepler/3f2b8c1e-aaaa-bbbb-cccc-123456789012', 'talepler/:id'],
+    ['/profil', '/profil'],
+    ['/yonetim/profil', 'profil'],
   ])('has its own page for the request address %s (not a placeholder, not "not found")', (path, route) => {
     const matches = matchRoutes(routes, path)
     expect(matches?.at(-1)?.route.path).toBe(route)
@@ -65,7 +67,7 @@ describe('routes', () => {
     expect((matches?.at(-1)?.route.element as { type: { name?: string } }).type.name).not.toBe('PlaceholderPage')
   })
 
-  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc'])('sends a logged-out visitor from %s to the login page', async (path) => {
+  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc', '/profil', '/yonetim/profil'])('sends a logged-out visitor from %s to the login page', async (path) => {
     const router = renderAt(path)
     expect(await screen.findByRole('heading', { level: 1, name: 'Giriş yap' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/giris')

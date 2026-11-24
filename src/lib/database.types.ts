@@ -863,6 +863,9 @@ isOneToOne: false
 "save_company_settings":
 { Args: { "p_commission_payer": string,"p_company": string,"p_due_day": number,"p_fee_pct": Json,"p_grace_days": number,"p_late_fee_method": string,"p_late_fee_rate": number,"p_ydo_rate": number }; Returns: undefined
                            },
+"save_my_notification_prefs":
+{ Args: { "p_prefs": Json }; Returns: Json
+                           },
 "save_recurring_plan":
 { Args: { "p_amount_kurus": number,"p_charge_type": string,"p_day": number,"p_description": string,"p_id": string,"p_karar_date": string,"p_karar_no": string,"p_name": string,"p_site": string,"p_split": string,"p_target": Json,"p_tenant_visible": boolean }; Returns: string
                            },
