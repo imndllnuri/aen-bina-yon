@@ -30,8 +30,19 @@ describe('AdminLayout', () => {
     }
     expect(within(sidebar).getByRole('link', { name: 'Daireler' })).toHaveAttribute('href', '/yonetim/daireler')
     expect(within(sidebar).getByRole('link', { name: 'Genel Bakış' })).toHaveAttribute('href', '/yonetim')
+    // the pages of slice 10
+    expect(within(sidebar).getByRole('link', { name: 'Raporlar' })).toHaveAttribute('href', '/yonetim/raporlar')
+    expect(within(sidebar).getByRole('link', { name: 'Ayarlar' })).toHaveAttribute('href', '/yonetim/ayarlar')
+    expect(within(sidebar).getByRole('link', { name: 'İşlem Geçmişi' })).toHaveAttribute('href', '/yonetim/islem-gecmisi')
+    expect(within(sidebar).getByRole('link', { name: 'Teklif Talepleri' })).toHaveAttribute('href', '/yonetim/teklif-talepleri')
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument()
     expect(screen.getByText('sayfa içeriği')).toBeInTheDocument()
+  })
+
+  it('hides the menu and the header on paper (reports are printed from here)', () => {
+    mountLayout(<AdminLayout />, '/yonetim/raporlar')
+    expect(screen.getAllByRole('navigation', { name: 'Ana menü' })[0]?.closest('aside')?.className).toContain('print:hidden')
+    expect(screen.getByRole('banner').className).toContain('print:hidden')
   })
 
   it('has the bell in the header, pointing to the admin\'s own Bildirimler page', () => {

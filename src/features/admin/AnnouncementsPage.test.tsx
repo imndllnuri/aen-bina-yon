@@ -408,3 +408,63 @@ describe('Duyurular (admin): the read report', () => {
     expect(await within(dialog).findByText(/Rapor şu anda yüklenemedi/)).toBeInTheDocument()
   })
 })
+
+describe('Duyurular (admin): coming from the dashboard', () => {
+  const openAt = (path: string) => renderRoutes(routes, { path, authState: signedInState(['admin']) })
+
+  it('opens the compose window at once for ?yeni=1, with nothing filled in', async () => {
+    openAt('/yonetim/duyurular?yeni=1')
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('heading', { name: 'Yeni duyuru' })).toBeInTheDocument()
+    expect(within(dialog).getByLabelText(/Başlık/)).toHaveValue('')
+    expect(within(dialog).getByLabelText('Kimler')).toHaveValue('all')
+  })
+
+  it('opens it with the debtors chosen and a reminder text ready for ?hedef=borclular', async () => {
+    openAt('/yonetim/duyurular?yeni=1&hedef=borclular')
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByLabelText(/Başlık/)).toHaveValue('Ödeme hatırlatması')
+    expect((within(dialog).getByLabelText(/Metin/) as HTMLTextAreaElement).value).toContain('ödenmemiş borcunuz görünüyor')
+    expect(within(dialog).getByLabelText('Kimler')).toHaveValue('debtors')
+    expect(within(dialog).getByLabelText('Kapsam')).toHaveValue('site')
+  })
+
+  it('asks the database how many people the reminder reaches, for the debtors', async () => {
+    openAt('/yonetim/duyurular?yeni=1&hedef=borclular')
+    await screen.findByRole('dialog')
+    await waitFor(() => expect(api.previewAudience).toHaveBeenCalled())
+    expect(api.previewAudience.mock.calls[0]?.[1]).toMatchObject({ scope: 'site', audience: 'debtors' })
+  })
+
+  it('does not open anything without the parameters, and ignores an unknown target', async () => {
+    openAt('/yonetim/duyurular')
+    await screen.findByText('Taslak duyuru')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('an unknown ?hedef= value opens an empty window (nothing is guessed)', async () => {
+    openAt('/yonetim/duyurular?yeni=1&hedef=herkes')
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByLabelText(/Başlık/)).toHaveValue('')
+    expect(within(dialog).getByLabelText('Kimler')).toHaveValue('all')
+  })
+
+  it('cleans the address, so a reload does not open the window again', async () => {
+    const { router } = openAt('/yonetim/duyurular?yeni=1&hedef=borclular')
+    await screen.findByRole('dialog')
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+  })
+
+  it('"Reminder" is only a start: the person can still change the text before it goes out', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    openAt('/yonetim/duyurular?yeni=1&hedef=borclular')
+    const dialog = await screen.findByRole('dialog')
+    const title = within(dialog).getByLabelText(/Başlık/)
+    await user.clear(title)
+    await user.type(title, 'Aidat hatırlatması')
+    await user.click(within(dialog).getByRole('button', { name: 'Kaydet ve yayınla' }))
+    await waitFor(() => expect(api.saveAnnouncement).toHaveBeenCalledTimes(1))
+    expect(api.saveAnnouncement.mock.calls[0]?.[0]).toMatchObject({ title: 'Aidat hatırlatması', target: { scope: 'site', audience: 'debtors' } })
+  })
+})
+
