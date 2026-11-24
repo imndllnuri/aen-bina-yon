@@ -5,7 +5,7 @@ export interface QueryCall {
   args: unknown[]
 }
 
-export function stubQuery(result: { data?: unknown; error?: unknown }) {
+export function stubQuery(result: { data?: unknown; error?: unknown; count?: number | null }) {
   const calls: QueryCall[] = []
   const query: unknown = new Proxy(
     {},
