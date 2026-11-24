@@ -35,6 +35,7 @@ import {
 } from '../lib/charges'
 import { formatKurus, sumKurus } from '@/lib/money'
 import { createRequestIds } from '@/lib/request-ids'
+import { useDueDay } from '@/features/settings/queries'
 import { ChargeFields, type DetailsShape } from './ChargeFields'
 import { FormError } from '@/components/StateBlocks'
 import { TargetPicker } from './TargetPicker'
@@ -85,6 +86,7 @@ function BulkChargeWizard({ onOpenChange, site, blocks, units, types, onCreated 
   // The same request id for the same exact request: a double click or a retry cannot charge twice.
   const [keyFor] = useState(() => createRequestIds())
   const period = useMemo(() => currentMonthIstanbul(), [])
+  const dueDay = useDueDay(site.companyId)
   const first = types[0]
 
   const form = useForm<BulkChargeValues>({
@@ -94,7 +96,7 @@ function BulkChargeWizard({ onOpenChange, site, blocks, units, types, onCreated 
       split: first?.defaultSplit ?? 'per_unit',
       amount: '',
       period,
-      dueDate: dueDateFor(period, 15),
+      dueDate: dueDateFor(period, dueDay),
       description: '',
       tenantVisible: first?.tenantVisibleDefault ?? true,
       kararNo: '',
@@ -208,6 +210,7 @@ function BulkChargeWizard({ onOpenChange, site, blocks, units, types, onCreated 
             amountLabel={splitInfo.amountLabel}
             onTypeChange={onTypeChange}
             idPrefix="bulk"
+            dueDay={dueDay}
           >
             <FormField id="bulk-split" label="Paylaştırma yöntemi" required error={errors.split?.message} hint={splitInfo.hint}>
               {(props) => (

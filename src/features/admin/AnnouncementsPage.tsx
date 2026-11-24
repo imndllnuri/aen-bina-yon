@@ -1,5 +1,6 @@
 import { Ellipsis, Pin } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { ErrorBlock, LoadingBlock } from '@/components/StateBlocks'
 import { Badge } from '@/components/ui/badge'
@@ -13,14 +14,14 @@ import { announcementState, STATE_LABEL, type AnnouncementState } from '@/featur
 import { useAdminAnnouncements, useRefreshAnnouncements } from '@/features/announcements/queries'
 import { formatDateTime } from '@/lib/format'
 import type { AdminSite } from './api'
-import { AnnouncementDialog } from './components/AnnouncementDialog'
+import { AnnouncementDialog, type AnnouncementPreset } from './components/AnnouncementDialog'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { ReadReportDialog } from './components/ReadReportDialog'
 import { SiteGate } from './components/SiteGate'
 
 const STATE_VARIANT: Record<AnnouncementState, 'outline' | 'secondary' | 'default' | 'destructive'> = { draft: 'outline', scheduled: 'secondary', live: 'default', expired: 'outline' }
 
-function AnnouncementsContent({ site, composeOpen, onComposeOpenChange }: { site: AdminSite; composeOpen: boolean; onComposeOpenChange: (open: boolean) => void }) {
+function AnnouncementsContent({ site, composeOpen, onComposeOpenChange, preset }: { site: AdminSite; composeOpen: boolean; onComposeOpenChange: (open: boolean) => void; preset: AnnouncementPreset | null }) {
   const list = useAdminAnnouncements(site.id)
   const refresh = useRefreshAnnouncements()
   const [editing, setEditing] = useState<AdminAnnouncement | null>(null)
@@ -97,7 +98,7 @@ function AnnouncementsContent({ site, composeOpen, onComposeOpenChange }: { site
         </div>
       )}
 
-      <AnnouncementDialog key="new" open={composeOpen} onOpenChange={onComposeOpenChange} site={site} announcement={null} />
+      <AnnouncementDialog key="new" open={composeOpen} onOpenChange={onComposeOpenChange} site={site} announcement={null} preset={preset} />
       {editing && <AnnouncementDialog key={editing.id} open onOpenChange={(open) => !open && setEditing(null)} site={site} announcement={editing} />}
       {reporting && <ReadReportDialog announcement={reporting} onOpenChange={(open) => !open && setReporting(null)} />}
       {publishing && (
@@ -153,14 +154,25 @@ function AnnouncementsContent({ site, composeOpen, onComposeOpenChange }: { site
 
 /** Duyurular (admin): write, schedule, publish, take back, and see who read. */
 export function AdminAnnouncementsPage() {
-  const [composeOpen, setComposeOpen] = useState(false)
+  // The dashboard sends people here with ?yeni=1 (open the window) and ?hedef=borclular (the debtors are chosen, a reminder text is ready).
+  const [params, setParams] = useSearchParams()
+  const [composeOpen, setComposeOpen] = useState(() => params.get('yeni') === '1')
+  const [preset] = useState<AnnouncementPreset | null>(() =>
+    params.get('hedef') === 'borclular'
+      ? { title: 'Ödeme hatırlatması', body: 'Sayın sakinimiz, ödenmemiş borcunuz görünüyor. Güncel borcunuzu “Borçlarım” sayfasından görüp ödeyebilirsiniz. Ödemenizi yaptıysanız bu mesajı dikkate almayın. Teşekkür ederiz.', audience: 'debtors' }
+      : null,
+  )
+  // the address is cleaned at once, so a reload does not open the window again
+  useEffect(() => {
+    if (params.has('yeni') || params.has('hedef')) setParams({}, { replace: true })
+  }, [params, setParams])
   return (
     <SiteGate
       title="Duyurular"
       description="Sakinlere duyuru gönderin: tüm siteye, bloklara, dairelere ya da kişilere. Kaç kişiye gideceğini yayınlamadan önce görürsünüz; sonra kimin okuduğunu izlersiniz."
       actions={() => <Button onClick={() => setComposeOpen(true)}>Yeni duyuru</Button>}
     >
-      {(site) => <AnnouncementsContent site={site} composeOpen={composeOpen} onComposeOpenChange={setComposeOpen} />}
+      {(site) => <AnnouncementsContent site={site} composeOpen={composeOpen} onComposeOpenChange={setComposeOpen} preset={preset} />}
     </SiteGate>
   )
 }

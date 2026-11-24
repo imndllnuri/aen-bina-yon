@@ -8,6 +8,7 @@ import { NativeSelect } from '@/components/NativeSelect'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { createChargeBatch, type AdminSite, type BlockRow, type ChargeTypeRow, type CreateBatchInput, type UnitRow } from '../api'
+import { useDueDay } from '@/features/settings/queries'
 import { chargeErrorMessage, currentMonthIstanbul, dueDateFor } from '../lib/charges'
 import { kurusOf, singleChargeSchema, type SingleChargeValues } from '../lib/charge-schemas'
 import { formatKurus } from '@/lib/money'
@@ -42,6 +43,7 @@ function SingleChargeForm({ onOpenChange, site, blocks, units, types, onCreated 
   // The same request id for the same exact request: a double click cannot charge twice.
   const [keyFor] = useState(() => createRequestIds())
   const period = useMemo(() => currentMonthIstanbul(), [])
+  const dueDay = useDueDay(site.companyId)
   const blockName = useMemo(() => new Map(blocks.map((b) => [b.id, b.name])), [blocks])
   const sortedUnits = useMemo(
     () => [...units].sort((a, b) => (blockName.get(a.blockId) ?? '').localeCompare(blockName.get(b.blockId) ?? '', 'tr')),
@@ -55,7 +57,7 @@ function SingleChargeForm({ onOpenChange, site, blocks, units, types, onCreated 
       typeId: types[0]?.id ?? '',
       amount: '',
       period,
-      dueDate: dueDateFor(period, 15),
+      dueDate: dueDateFor(period, dueDay),
       description: '',
       tenantVisible: types[0]?.tenantVisibleDefault ?? true,
     },
@@ -125,6 +127,7 @@ function SingleChargeForm({ onOpenChange, site, blocks, units, types, onCreated 
           amountLabel="Dairenin tutarı"
           onTypeChange={onTypeChange}
           idPrefix="single"
+          dueDay={dueDay}
         />
         <FormError message={error} />
         <DialogFooter>

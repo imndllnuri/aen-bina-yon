@@ -26,7 +26,7 @@ export function SiteGate({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
           {description && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>}

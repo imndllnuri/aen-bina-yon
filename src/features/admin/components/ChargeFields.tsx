@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 import { FormField } from '@/components/FormField'
 import { NativeSelect } from '@/components/NativeSelect'
@@ -29,6 +29,7 @@ export function ChargeFields({
   amountLabel,
   onTypeChange,
   idPrefix,
+  dueDay = 15,
   children,
 }: {
   form: UseFormReturn<DetailsShape>
@@ -36,6 +37,8 @@ export function ChargeFields({
   amountLabel: string
   onTypeChange?: (typeId: string) => void
   idPrefix: string
+  /** The day of the month the due date starts with (the company's setting). */
+  dueDay?: number
   children?: ReactNode
 }) {
   const {
@@ -45,6 +48,14 @@ export function ChargeFields({
     formState: { errors, dirtyFields },
   } = form
   const periods = useMemo(() => monthOptions(), [])
+
+  // The setting may arrive after the form opened: a due date the person has not touched follows it.
+  const { getValues, getFieldState, formState } = form
+  useEffect(() => {
+    if (!getFieldState('dueDate', formState).isDirty) setValue('dueDate', dueDateFor(getValues('period'), dueDay))
+    // only when the day changes; what the person types later is never overwritten
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dueDay])
 
   // Shows what the typed text means, so "1.500" is seen as ₺1.500,00 before anything is sent.
   const parsed = parseTryAmount(useWatch({ control, name: 'amount' }))
@@ -74,7 +85,7 @@ export function ChargeFields({
             {...register('period', {
               // A due date the person has not touched follows the period (the 15th of that month).
               onChange: (event) => {
-                if (!dirtyFields.dueDate) setValue('dueDate', dueDateFor(event.target.value, 15))
+                if (!dirtyFields.dueDate) setValue('dueDate', dueDateFor(event.target.value, dueDay))
               },
             })}
           >

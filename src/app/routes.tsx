@@ -7,6 +7,11 @@ import { ForgotPassword } from '@/features/auth/ForgotPassword'
 import { Login } from '@/features/auth/Login'
 import { SetPassword } from '@/features/auth/SetPassword'
 import { AdminAnnouncementsPage } from '@/features/admin/AnnouncementsPage'
+import { AdminDashboardPage } from '@/features/admin/DashboardPage'
+import { AuditPage } from '@/features/admin/AuditPage'
+import { QuoteRequestsPage } from '@/features/admin/QuoteRequestsPage'
+import { ReportsPage } from '@/features/admin/ReportsPage'
+import { SettingsPage } from '@/features/admin/SettingsPage'
 import { BorclandirmaPage } from '@/features/admin/BorclandirmaPage'
 import { AdminPaymentsPage } from '@/features/admin/PaymentsPage'
 import { AdminRequestDetailPage } from '@/features/admin/RequestDetailPage'
@@ -87,7 +92,7 @@ export const routes: RouteObject[] = [
       </RequireRole>
     ),
     children: [
-      { index: true, element: page('Genel Bakış') },
+      { index: true, element: <AdminDashboardPage /> },
       { path: 'daireler', element: <UnitsPage /> },
       { path: 'sakinler', element: <ResidentsPage /> },
       { path: 'borclandirma', element: <BorclandirmaPage /> },
@@ -97,9 +102,10 @@ export const routes: RouteObject[] = [
       { path: 'bildirimler', element: <NotificationsPage /> },
       { path: 'talepler', element: <AdminRequestsPage /> },
       { path: 'talepler/:id', element: <AdminRequestDetailPage /> },
-      { path: 'teklif-talepleri', element: page('Teklif Talepleri') },
-      { path: 'raporlar', element: page('Raporlar') },
-      { path: 'ayarlar', element: page('Ayarlar') },
+      { path: 'teklif-talepleri', element: <QuoteRequestsPage /> },
+      { path: 'raporlar', element: <ReportsPage /> },
+      { path: 'islem-gecmisi', element: <AuditPage /> },
+      { path: 'ayarlar', element: <SettingsPage /> },
     ],
   },
   { path: '*', element: <NotFound /> },

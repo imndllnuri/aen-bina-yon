@@ -7,6 +7,7 @@ import {
   Landmark,
   LogOut,
   Megaphone,
+  History,
   Menu,
   Settings,
   Users,
@@ -47,6 +48,7 @@ const groups: NavGroup[] = [
     items: [
       { to: '/yonetim/teklif-talepleri', label: 'Teklif Talepleri', icon: FileText },
       { to: '/yonetim/ayarlar', label: 'Ayarlar', icon: Settings },
+      { to: '/yonetim/islem-gecmisi', label: 'İşlem Geçmişi', icon: History },
     ],
   },
 ]
@@ -57,13 +59,13 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-svh">
-      <aside className="hidden w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r bg-sidebar p-4 lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r bg-sidebar p-4 lg:flex print:hidden">
         <BrandLogo to="/yonetim" />
         <SidebarNav groups={groups} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur print:hidden">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menüyü aç">

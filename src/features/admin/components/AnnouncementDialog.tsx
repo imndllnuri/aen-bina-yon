@@ -52,7 +52,14 @@ function CheckList({ id, label, options, value, onChange, disabled, error }: { i
   )
 }
 
-function Form({ site, announcement, initialTarget, onClose }: { site: AdminSite; announcement: AdminAnnouncement | null; initialTarget: Target | null; onClose: () => void }) {
+/** A new announcement can start with some fields filled in (the dashboard's "Hatırlatma Gönder" does). */
+export interface AnnouncementPreset {
+  title: string
+  body: string
+  audience: 'debtors'
+}
+
+function Form({ site, announcement, initialTarget, preset, onClose }: { site: AdminSite; announcement: AdminAnnouncement | null; initialTarget: Target | null; preset: AnnouncementPreset | null; onClose: () => void }) {
   const blocks = useBlocks(site.id)
   const units = useUnits(site.id)
   const residents = useResidents(site.id)
@@ -69,12 +76,12 @@ function Form({ site, announcement, initialTarget, onClose }: { site: AdminSite;
   } = useForm<AnnouncementValues>({
     resolver: zodResolver(announcementSchema),
     defaultValues: {
-      title: announcement?.title ?? '',
-      body: announcement?.body ?? '',
+      title: announcement?.title ?? preset?.title ?? '',
+      body: announcement?.body ?? preset?.body ?? '',
       type: announcement?.type ?? 'genel',
       pinned: announcement?.pinned ?? false,
       scope: initialTarget?.scope ?? 'site',
-      audience: initialTarget?.audience ?? 'all',
+      audience: initialTarget?.audience ?? preset?.audience ?? 'all',
       blockIds: initialTarget?.block_ids ?? [],
       unitIds: initialTarget?.unit_ids ?? [],
       profileIds: initialTarget?.profile_ids ?? [],
@@ -244,7 +251,7 @@ function Form({ site, announcement, initialTarget, onClose }: { site: AdminSite;
 }
 
 /** Compose or edit an announcement. The form only exists while the dialog is open, so it starts fresh every time. */
-export function AnnouncementDialog({ open, onOpenChange, site, announcement }: { open: boolean; onOpenChange: (open: boolean) => void; site: AdminSite; announcement: AdminAnnouncement | null }) {
+export function AnnouncementDialog({ open, onOpenChange, site, announcement, preset = null }: { open: boolean; onOpenChange: (open: boolean) => void; site: AdminSite; announcement: AdminAnnouncement | null; preset?: AnnouncementPreset | null }) {
   // To edit, the target is loaded first (residents never read it; an admin gets it from a checked function).
   const target = useQuery({
     queryKey: ['announcements', 'target', announcement?.id],
@@ -257,7 +264,7 @@ export function AnnouncementDialog({ open, onOpenChange, site, announcement }: {
       <DialogContent className="max-h-[92svh] overflow-y-auto sm:max-w-2xl">
         {open && announcement && target.isPending && <LoadingBlock />}
         {open && announcement && target.isError && <ErrorBlock text="Duyurunun alıcıları yüklenemedi. Lütfen tekrar deneyin." onRetry={() => void target.refetch()} />}
-        {open && (announcement === null || target.data) && <Form site={site} announcement={announcement} initialTarget={target.data ?? null} onClose={() => onOpenChange(false)} />}
+        {open && (announcement === null || target.data) && <Form site={site} announcement={announcement} initialTarget={target.data ?? null} preset={preset} onClose={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   )
