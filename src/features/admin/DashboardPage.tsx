@@ -57,7 +57,7 @@ function KpiRow({ kpis }: { kpis: Kpis }) {
 
 function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section className="space-y-3" aria-label={title}>
+    <section className="min-w-0 space-y-3" aria-label={title}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{title}</h2>
         {action}
@@ -107,7 +107,7 @@ function DashboardContent({ site }: { site: AdminSite }) {
             </p>
           )}
           {debts.data && debts.data.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="relative overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
                 <caption className="sr-only">En çok borcu olan daireler</caption>
                 <thead className="bg-muted/50 text-left">
@@ -140,7 +140,7 @@ function DashboardContent({ site }: { site: AdminSite }) {
             </p>
           )}
           {latest.data && latest.data.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border">
+            <div className="relative overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
                 <caption className="sr-only">Son ödemeler</caption>
                 <thead className="bg-muted/50 text-left">

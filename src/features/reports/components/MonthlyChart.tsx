@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { monthLabel } from '@/lib/format'
 import { formatKurus } from '@/lib/money'
 import type { MonthRow } from '../api'
-import { barPercent, compactTRY, monthTick, niceMax, ticksFor } from '../lib/chart'
+import { axisLabel, barPercent, monthTick, niceMax, ticksFor } from '../lib/chart'
 
 /**
  * Month by month: accrued (tahakkuk) and collected (tahsil edilen), as columns on ONE axis. A legend names the two colours,
@@ -33,7 +33,7 @@ export function MonthlyChart({ rows }: { rows: MonthRow[] }) {
       </div>
 
       {asTable ? (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="relative overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <caption className="sr-only">Aylara göre tahakkuk ve tahsilat</caption>
             <thead className="bg-muted/50 text-left">
@@ -55,11 +55,11 @@ export function MonthlyChart({ rows }: { rows: MonthRow[] }) {
           </table>
         </div>
       ) : (
-        <div className="flex gap-2">
-          <div className="relative h-56 w-12 shrink-0 text-right text-[11px] text-muted-foreground" aria-hidden="true">
+        <div className="flex gap-2 pt-3">
+          <div className="relative h-56 w-14 shrink-0 text-right text-[11px] text-muted-foreground" aria-hidden="true">
             {ticks.map((t, i) => (
               <span key={t} className="absolute right-0 -translate-y-1/2 tabular-nums" style={{ bottom: `${i * 25}%` }}>
-                {compactTRY(t)}
+                {axisLabel(t)}
               </span>
             ))}
           </div>

@@ -20,7 +20,7 @@ export function ReportTable({ sheet, caption, emptyText }: { sheet: XSheet; capt
     )
   }
   return (
-    <div className="overflow-x-auto rounded-lg border print:overflow-visible print:rounded-none print:border-0">
+    <div className="relative overflow-x-auto rounded-lg border print:overflow-visible print:rounded-none print:border-0">
       <table className="w-full text-sm print:text-[11px]">
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-muted/50 text-left">

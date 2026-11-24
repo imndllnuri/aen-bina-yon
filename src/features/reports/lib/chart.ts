@@ -1,10 +1,14 @@
 // The small maths of the monthly column chart. Pure functions: easy to test.
 
-/** A round top for the scale of the chart: 1, 2, 2.5, 5 or 10 times a power of ten, never below the biggest value. */
+/**
+ * A round top for the scale of the chart: 1, 2, 4, 8 or 10 times a power of ten (never below 100 TL, never below the biggest
+ * value). These steps are chosen so that the four quarter marks are clean numbers (25, 50, 75 - 100, 200, 300 - 250, 500, 750 ...).
+ */
 export function niceMax(maxKurus: number): number {
-  if (!(maxKurus > 0)) return 100_00 // an empty chart still has a scale: 100 TL
+  const floor = 100_00 // 100 TL: an empty chart still has a scale
+  if (!(maxKurus > floor)) return floor
   const magnitude = 10 ** Math.floor(Math.log10(maxKurus))
-  for (const step of [1, 2, 2.5, 5, 10]) {
+  for (const step of [1, 2, 4, 8, 10]) {
     if (step * magnitude >= maxKurus) return step * magnitude
   }
   return 10 * magnitude
@@ -19,9 +23,13 @@ export function barPercent(valueKurus: number, scaleKurus: number): number {
 /** The five tick values of the y axis: 0, 25 %, 50 %, 75 % and 100 % of the scale. */
 export const ticksFor = (scaleKurus: number): number[] => [0, 0.25, 0.5, 0.75, 1].map((f) => scaleKurus * f)
 
-const compact = new Intl.NumberFormat('tr-TR', { notation: 'compact', maximumFractionDigits: 1 })
-/** "₺12 B" (12 bin), "₺1,5 Mn": short, for the axis. */
-export const compactTRY = (kurus: number): string => `₺${compact.format(kurus / 100)}`
+const whole = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 })
+const compactLong = new Intl.NumberFormat('tr-TR', { notation: 'compact', compactDisplay: 'long', maximumFractionDigits: 1 })
+/** An axis label: in full under 10.000 TL ("₺2.500"), short from there on ("₺10 bin", "₺1,5 milyon"). */
+export function axisLabel(kurus: number): string {
+  const tl = kurus / 100
+  return tl < 10_000 ? `₺${whole.format(tl)}` : `₺${compactLong.format(tl)}`
+}
 
 const shortMonth = new Intl.DateTimeFormat('tr-TR', { month: 'short', timeZone: 'UTC' })
 /** "2026-11-01" -> "Kas" (and the year is added for the first column and for every January). */

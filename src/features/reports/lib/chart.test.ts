@@ -1,20 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { barPercent, compactTRY, monthTick, niceMax, ticksFor } from './chart'
+import { axisLabel, barPercent, monthTick, niceMax, ticksFor } from './chart'
 
 describe('niceMax (the round top of the scale)', () => {
-  it('rounds up to 1, 2, 2.5, 5 or 10 times a power of ten, never below the biggest value', () => {
+  it('rounds up to 1, 2, 4, 8 or 10 times a power of ten, never below the biggest value', () => {
     expect(niceMax(100_00)).toBe(100_00)
     expect(niceMax(101_00)).toBe(200_00)
-    expect(niceMax(230_00)).toBe(250_00)
-    expect(niceMax(251_00)).toBe(500_00)
-    expect(niceMax(501_00)).toBe(1000_00)
-    expect(niceMax(1)).toBe(1)
-    for (const v of [1, 7, 99, 123456, 987654321, 1_500_000_00]) expect(niceMax(v)).toBeGreaterThanOrEqual(v)
+    expect(niceMax(230_00)).toBe(400_00)
+    expect(niceMax(401_00)).toBe(800_00)
+    expect(niceMax(801_00)).toBe(1000_00)
+    expect(niceMax(4950_25)).toBe(8000_00)
+    for (const v of [101, 7_00, 99_00, 123456, 987654321, 1_500_000_00]) expect(niceMax(v)).toBeGreaterThanOrEqual(v)
   })
-  it('gives an empty chart a scale of 100 TL', () => {
+  it('makes all four quarter marks clean numbers of whole TL', () => {
+    for (const v of [100_00, 150_00, 300_00, 999_00, 1234_56, 4950_25, 25_000_00, 1_234_567_00]) {
+      for (const tick of ticksFor(niceMax(v))) expect(Number.isInteger(tick / 100)).toBe(true)
+    }
+  })
+  it('gives an empty chart (or a tiny one) a scale of 100 TL', () => {
     expect(niceMax(0)).toBe(100_00)
     expect(niceMax(-5)).toBe(100_00)
     expect(niceMax(Number.NaN)).toBe(100_00)
+    expect(niceMax(1)).toBe(100_00)
+    expect(niceMax(50_00)).toBe(100_00)
   })
 })
 
@@ -36,12 +43,17 @@ describe('axis texts', () => {
   it('has five ticks from 0 to the top', () => {
     expect(ticksFor(1000)).toEqual([0, 250, 500, 750, 1000])
   })
-  it('writes money short for the axis', () => {
-    expect(compactTRY(0)).toBe('₺0')
-    // the number and the unit are joined by a non-breaking space
+  it('writes the axis in full under 10.000 TL (a quarter of 5.000 is ₺1.250, not "₺1,3 B")', () => {
+    expect(axisLabel(0)).toBe('₺0')
+    expect(axisLabel(25_00)).toBe('₺25')
+    expect(axisLabel(1250_00)).toBe('₺1.250')
+    expect(axisLabel(9999_00)).toBe('₺9.999')
+  })
+  it('writes it short from 10.000 TL on, with the unit in words', () => {
     const plain = (text: string) => text.replace(/\u00a0/g, ' ')
-    expect(plain(compactTRY(12_000_00))).toBe('₺12 B')
-    expect(plain(compactTRY(1_500_000_00))).toBe('₺1,5 Mn')
+    expect(plain(axisLabel(10_000_00))).toBe('₺10 bin')
+    expect(plain(axisLabel(250_000_00))).toBe('₺250 bin')
+    expect(plain(axisLabel(1_500_000_00))).toBe('₺1,5 milyon')
   })
   it('writes the month in three letters, with the year for the first column and for January', () => {
     expect(monthTick('2026-11-01', false)).toBe('Kas')

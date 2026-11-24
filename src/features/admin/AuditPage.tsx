@@ -32,7 +32,7 @@ function DetailDialog({ row, onOpenChange }: { row: AuditRow; onOpenChange: (ope
         {entries.length === 0 ? (
           <p className="text-sm text-muted-foreground">Bu kayıtta ayrıntı yok.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="relative overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <caption className="sr-only">Kaydın ayrıntısı</caption>
               <thead className="bg-muted/50 text-left">
@@ -141,7 +141,7 @@ function AuditContent({ site }: { site: AdminSite }) {
           <p className="text-sm text-muted-foreground">
             {log.data.total} kayıt · sayfa {page + 1} / {pages} · en yeni üstte
           </p>
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="relative overflow-x-auto rounded-lg border">
             <table className="w-full text-sm">
               <caption className="sr-only">İşlem geçmişi</caption>
               <thead className="bg-muted/50 text-left">
