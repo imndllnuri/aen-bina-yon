@@ -208,11 +208,11 @@ function AccountCard({ userId, roles, profile }: { userId: string; roles: Role[]
       </CardHeader>
       <CardContent>
         <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[10rem_1fr]">
-          <dt className="text-muted-foreground">Rolünüz</dt>
+          <dt className="text-muted-foreground max-sm:mt-3 max-sm:first:mt-0">Rolünüz</dt>
           <dd>{roles.length === 0 ? '—' : roles.map((r) => ROLE_LABEL[r]).join(' ve ')}</dd>
           {isResident && (
             <>
-              <dt className="text-muted-foreground">Dairenizdeki yeriniz</dt>
+              <dt className="text-muted-foreground max-sm:mt-3 max-sm:first:mt-0">Dairenizdeki yeriniz</dt>
               <dd>
                 {units.isPending && 'Yükleniyor…'}
                 {units.isError && 'Daireleriniz şu anda okunamadı.'}
@@ -231,7 +231,7 @@ function AccountCard({ userId, roles, profile }: { userId: string; roles: Role[]
           )}
           {isAdmin && (
             <>
-              <dt className="text-muted-foreground">Yönettiğiniz siteler</dt>
+              <dt className="text-muted-foreground max-sm:mt-3 max-sm:first:mt-0">Yönettiğiniz siteler</dt>
               <dd>
                 {sites.isPending && 'Yükleniyor…'}
                 {sites.isError && 'Siteleriniz şu anda okunamadı.'}
@@ -239,7 +239,7 @@ function AccountCard({ userId, roles, profile }: { userId: string; roles: Role[]
               </dd>
             </>
           )}
-          <dt className="text-muted-foreground">KVKK aydınlatma metni</dt>
+          <dt className="text-muted-foreground max-sm:mt-3 max-sm:first:mt-0">KVKK aydınlatma metni</dt>
           <dd>
             {profile.kvkkAt ? `Okuduğunuzu ${formatDateTime(profile.kvkkAt)} tarihinde onayladınız.` : 'Onay kaydı yok.'}{' '}
             <Link to="/kvkk" className="font-medium text-primary underline-offset-4 hover:underline">

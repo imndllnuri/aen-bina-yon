@@ -7,7 +7,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(48);
+select plan(49);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -108,6 +108,12 @@ select is(tt.prefs('R2'), '{"email_finance": false}'::jsonb, 'R2 has exactly the
 
 select pg_temp.act_as_visitor();
 select throws_ok($$select public.save_my_notification_prefs('{"email_finance": true}')$$, '42501', null, 'a visitor cannot call the function');
+reset role; select set_config('request.jwt.claims', '', true);
+
+-- a token that has a role but no person id
+select set_config('request.jwt.claims', '{"role":"authenticated"}', true);
+select set_config('role', 'authenticated', true);
+select throws_ok($$select public.save_my_notification_prefs('{"email_finance": true}')$$, '28000', 'not authenticated', 'a login without a person id is refused');
 reset role; select set_config('request.jwt.claims', '', true);
 
 select pg_temp.act_as(tt.u('DD'));

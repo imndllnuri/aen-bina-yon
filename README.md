@@ -46,6 +46,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0007_announcements.sql` | announcements (plain text), who-gets-it targets, recipients, read receipts, the bell (`notifications`) and the triggers that ring it (see "Announcements and the bell" below) |
 | `supabase/migrations/0008_requests.sql` | requests, the timeline, comments (with internal notes), photos, the private `talep-fotolari` bucket and seven checked functions (see "Requests" below) |
 | `supabase/migrations/0009_admin_tools.sql` | the audit log (`audit_log`, one trigger on twelve tables), dashboard and report functions, charge-type and settings functions, quote-request status (see "Dashboard, reports, settings and audit log" below) |
+| `supabase/migrations/0010_profile.sql` | the Profil page: a shape check on `profiles.notify_prefs` and `save_my_notification_prefs()` (only the person changes their own e-mail choices; see "Profil page" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -344,6 +345,34 @@ Admin pages: **Genel Bakış** (`/#/yonetim`), **Raporlar** (`/#/yonetim/raporla
   if nothing uses them. The `payment_mode` safety switch is **not** changeable from the screen.
 - **Not built (named on purpose):** admin invites, editing request categories, message templates, logo upload, automatic late fees,
   deleting old dekont and photo files, an allowed list for installments.
+
+### Profil page (slice 11)
+
+Pages: **Profil** for residents (`/#/profil`) and **Profilim** for admins (`/#/yonetim/profil`). On a phone both panels have a user button in the
+header (the resident bottom bar has no room for it).
+
+- **Kişisel bilgiler:** name and phone (the same rules as the admin's "Bilgileri düzenle" in Sakinler). The e-mail is the login address and is
+  **read-only**: changing it needs a confirmation e-mail, which needs your own mail server (a later slice).
+- **E-posta bildirimleri:** three choices (borç ve ödemeler, duyurular, taleplerim). They are **only stored for now**: nothing sends e-mail yet, and
+  the page says so. A choice that was never made counts as ON. The bell inside the site is always on.
+  - The choices are written by one checked function, `save_my_notification_prefs()`. The old column update was taken away: before 0010 a site admin
+    could change a resident's choices through the API.
+  - The database also checks the shape: only the three known keys, each `true` or `false`.
+- **Şifre:** the person types the **current** password (checked by logging in with it), then the new one. After a change, the sessions on all
+  **other** devices are closed. There is also a button to close them on request. A wrong current password says "Mevcut şifre hatalı."
+  - For extra protection you can switch on "Secure password change" in the Supabase Auth settings (a hosted setting, not in this repo).
+- **Hesabım:** role, the unit(s) or the sites, and the date the KVKK notice was accepted.
+- **Not built (named on purpose):** changing the e-mail, deleting the account, a profile audit (the audit log does not list `profiles`), a photo.
+
+### Helper scripts
+
+| Path | What |
+|---|---|
+| `scripts/ops/fingerprint.py` | Compares the database **structure** of the local stack and the live project (12 categories, read-only on both sides) |
+| `scripts/ops/live-check.py` | Safe checks of the live site and database as a **visitor** (public key only, nothing is written) |
+| `scripts/dev/dev-local.sh` | Starts the dev server on port 5199 against the **local** stack |
+| `scripts/dev/browser-s11.mjs` | Real-browser check of the Profil page against the local stack (keys are read from the local stack at run time) |
+| `scripts/dev/break-db.py`, `break-ui.py` | The "break it on purpose" engines; the lists are in `scripts/dev/breaks/` |
 
 ### Testing havale notices on the hosted demo
 
