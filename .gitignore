@@ -39,3 +39,7 @@ test-results
 
 # Local notes with passwords: never commit
 accounts.txt
+
+# Python caches of the helper scripts
+__pycache__/
+*.pyc

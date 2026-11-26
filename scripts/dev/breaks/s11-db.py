@@ -5,7 +5,7 @@ CHECK_TYPE = "and not jsonb_path_exists(notify_prefs, '$.* ? (@.type() <> \"bool
 BREAKS = [
  ('B01', 'the shape check lets unknown keys in', CHECK_KEYS, "and true"),
  ('B02', 'the shape check lets non-boolean values in', CHECK_TYPE, "and true"),
- ('B03', 'the shape check refuses real booleans', "(@.type() <> \"boolean\")", "(@.type() = \"boolean\")"),
+ ('B03', 'the shape check refuses real booleans', "(@.type() <> \"boolean\")", "(@.type() == \"boolean\")"),
  ('B04', 'the shape check is never added', "alter table public.profiles add constraint profiles_notify_prefs_shape check (", "alter table public.profiles add constraint profiles_notify_prefs_shape check (true or "),
  ('B05', 'an admin can write a resident\'s choices (column update not revoked)', "revoke update (notify_prefs) on public.profiles from authenticated;", "-- not revoked"),
  ('B06', 'a deactivated person can save', "   where p.id = v_uid\n     and p.is_active\n", "   where p.id = v_uid\n"),

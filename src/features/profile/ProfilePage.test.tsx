@@ -125,9 +125,11 @@ describe('E-posta bildirimleri', () => {
     expect(save).toBeDisabled()
     await user.click(boxes()[0] as HTMLElement)
     expect(save).toBeEnabled()
+    const before = api.fetchMyProfile.mock.calls.length
     await user.click(save)
     await waitFor(() => expect(api.saveMyNotificationPrefs).toHaveBeenCalledTimes(1))
     expect(api.saveMyNotificationPrefs).toHaveBeenCalledWith({ email_finance: false, email_announcements: true, email_requests: true })
+    await waitFor(() => expect(api.fetchMyProfile.mock.calls.length).toBeGreaterThan(before)) // the page asks again
     expect(toast.success).toHaveBeenCalledWith('Bildirim tercihleriniz kaydedildi.')
   })
   it('shows a message when the choices could not be saved', async () => {
