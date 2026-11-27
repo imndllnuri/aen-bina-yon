@@ -6,7 +6,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(72);
+select plan(76);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -117,11 +117,16 @@ select lives_ok($$insert into public.contact_messages (name, phone, message) val
 select is((select count(*)::integer from public.contact_messages), 0, 'a resident sees no message (not even their own)');
 select is_empty($$update public.contact_messages set status = 'read' where name = 'T-phone' returning 1$$, 'a resident finds no row to change');
 select is_empty($$delete from public.contact_messages where name = 'T-phone' returning 1$$, '...or delete');
+-- without a filter the select rule does not help: the update and delete rules themselves must refuse
+select lives_ok($$update public.contact_messages set status = 'answered'$$, 'a resident''s update with no filter runs but changes no row');
+select lives_ok($$delete from public.contact_messages$$, '...and so does a delete with no filter');
 reset role; select set_config('request.jwt.claims', '', true);
 select pg_temp.act_as(tt.u('S'));
 select is((select count(*)::integer from public.contact_messages), 0, 'a stranger sees no message');
 select is_empty($$update public.contact_messages set admin_note = 'x' where name = 'T-phone' returning 1$$, '...and changes none');
 select is_empty($$delete from public.contact_messages where name = 'T-phone' returning 1$$, '...and deletes none');
+select lives_ok($$update public.contact_messages set status = 'answered'$$, 'a stranger''s update with no filter runs but changes no row');
+select lives_ok($$delete from public.contact_messages$$, '...and so does a delete with no filter');
 reset role; select set_config('request.jwt.claims', '', true);
 select is(tt.n('T-phone'), 1, 'the message is still there');
 select is(tt.one('T-phone', 'status'), 'new', '...unchanged');

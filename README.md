@@ -47,6 +47,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0008_requests.sql` | requests, the timeline, comments (with internal notes), photos, the private `talep-fotolari` bucket and seven checked functions (see "Requests" below) |
 | `supabase/migrations/0009_admin_tools.sql` | the audit log (`audit_log`, one trigger on twelve tables), dashboard and report functions, charge-type and settings functions, quote-request status (see "Dashboard, reports, settings and audit log" below) |
 | `supabase/migrations/0010_profile.sql` | the Profil page: a shape check on `profiles.notify_prefs` and `save_my_notification_prefs()` (only the person changes their own e-mail choices; see "Profil page" below) |
+| `supabase/migrations/0011_contact_messages.sql` | the public contact form: `contact_messages` (visitors insert four columns only; admins read, answer and delete; see "Public pages" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -373,6 +374,29 @@ header (the resident bottom bar has no room for it).
 | `scripts/dev/dev-local.sh` | Starts the dev server on port 5199 against the **local** stack |
 | `scripts/dev/browser-s11.mjs` | Real-browser check of the Profil page against the local stack (keys are read from the local stack at run time) |
 | `scripts/dev/break-db.py`, `break-ui.py` | The "break it on purpose" engines; the lists are in `scripts/dev/breaks/` |
+
+### Public pages and the contact form (slice 12)
+
+- **Legal and information pages** (footer links): **SSS** (`/#/sss`), **Çerez Politikası** (`/#/cerez-politikasi`), **Mesafeli Satış Sözleşmesi**
+  (`/#/mesafeli-satis`), **KMK bilgi** (`/#/kat-mulkiyeti-kanunu`) and the **KVKK** text (`/#/kvkk`, now version `2026-11-taslak-3`).
+  **All of them are DRAFTS** and say so on the page: a lawyer must review them before real residents join. Open facts are left as
+  `[BRACKETS]` (tax number, retention period, delivery time).
+  - The cookie text is true today: the site sets **no cookie at all**. It keeps the login and two small choices in the browser's own storage
+    (checked in a real browser: zero cookies after visiting every public page).
+  - The KMK page is a plain summary with a link to the official text on mevzuat.gov.tr. It is information, not legal advice.
+  - When a legal text changes, change `KVKK_VERSION` (`src/config/kvkk.ts`): the version is stored with each person's consent.
+- **Service pages:** every card of the Hizmetler grid opens `/#/hizmetler/<slug>` (the text lives in `src/features/public/services-data.ts`).
+- **Contact form** (İletişim page) -> table `contact_messages` (migration 0011). Same safety model as the "Teklif Al" form: a visitor can only
+  **insert** four columns (name, phone, e-mail, message), cannot read anything back, and cannot set the status. A hidden "honeypot" field catches
+  simple bots. There is **no rate limit and no captcha yet**: expect some spam when the site is public.
+- **İletişim Mesajları** (`/#/yonetim/mesajlar`, admin): list, status (Yeni / Okundu / Yanıtlandı), a private note, delete. The text of the
+  visitor is shown as plain text and cannot be changed. Like the quote requests, every admin of every company sees the messages.
+- **WhatsApp button:** a round button at the bottom right of every public page (not in the panels, hidden on paper). It uses `site.whatsapp`
+  in `src/config/site.ts`, which is still a **placeholder number**: replace it with the real one.
+- **Map link:** "Haritada aç" on the İletişim page is a plain link that searches the address. No map is embedded, so nothing is loaded from a
+  map service until a person clicks.
+- **Not built (named on purpose):** captcha or rate limit for the public forms, e-mail to the management when a message arrives (comes with the
+  e-mail slice), replying from inside the portal.
 
 ### Testing havale notices on the hosted demo
 

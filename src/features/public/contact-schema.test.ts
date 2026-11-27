@@ -44,6 +44,8 @@ describe('contactSchema (the limits of contact_messages)', () => {
     expect(errorsFor({ phone: 'abc' }).phone).toBe('Geçerli bir telefon numarası yazın. Örnek: 0532 000 00 00')
     expect(errorsFor({ phone: '12345' }).phone).toBe('Geçerli bir telefon numarası yazın. Örnek: 0532 000 00 00')
     expect(errorsFor({ email: 'not-an-address' }).email).toBe('Geçerli bir e-posta adresi yazın.')
+    expect(errorsFor({ email: `${'a'.repeat(188)}@example.com` })).toEqual({}) // 200 characters
+    expect(errorsFor({ email: `${'a'.repeat(189)}@example.com` }).email).toBe('Geçerli bir e-posta adresi yazın.') // 201
   })
   it('wants the KVKK tick', () => {
     expect(errorsFor({ kvkk: false }).kvkk).toBe('Devam etmek için aydınlatma metnini okuduğunuzu onaylayın.')

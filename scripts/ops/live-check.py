@@ -35,6 +35,7 @@ check('the slice 8 pages are in the live bundle', all(x in text for x in ['Son d
 check('the slice 9 pages are in the live bundle', all(x in text for x in ['Yeni talep', 'Telefonla talep aç', 'sakin görmez', 'talep-fotolari', 'Çözümü değerlendirin']))
 check('the slice 10 pages are in the live bundle (Tabloyu göster, İşlem Geçmişi, Hazirun cetveli, Yazdır / PDF, Excel’e aktar, Borç türleri, Hatırlatma Gönder)', all(x in text for x in ['Tabloyu göster', 'İşlem Geçmişi', 'Hazirun cetveli', 'Yazdır / PDF', 'Excel’e aktar', 'Borç türleri', 'Hatırlatma Gönder']))
 check('the slice 11 page is in the live bundle (Profilim, E-posta bildirimleri, Şifreyi değiştir, Diğer cihazlardaki oturumları kapat)', all(x in text for x in ['Profilim', 'E-posta bildirimleri', 'Şifreyi değiştir', 'Diğer cihazlardaki oturumları kapat']))
+check('the slice 12 pages are in the live bundle (Bize yazın, Haritada aç, Çerez Politikası, Mesafeli Satış Sözleşmesi, Sıkça Sorulan Sorular, Neler dahil?)', all(x in text for x in ['Bize yazın', 'Haritada aç', 'Çerez Politikası', 'Mesafeli Satış Sözleşmesi', 'Sıkça Sorulan Sorular', 'Neler dahil?', 'İletişim Mesajları']))
 check('NO secret key in the live bundle', not re.search(r'sb_secret_[A-Za-z0-9_-]{16,}', text))
 check('no service_role key in the live bundle', 'service_role' not in text)
 
@@ -113,6 +114,16 @@ st, b, _ = get(f'{API}/rest/v1/profiles?id=eq.{UUID}', H, 'PATCH', json.dumps({'
 check(f'a visitor cannot write notify_prefs (HTTP {st})', st in (401, 403), b[:120])
 st, b, _ = get(f'{API}/rest/v1/profiles?id=eq.{UUID}', H, 'PATCH', json.dumps({'full_name': 'x'}).encode())
 check(f'a visitor cannot change a name (HTTP {st})', st in (401, 403), b[:120])
+
+print('8. SLICE 12: A VISITOR CAN ONLY SEND A MESSAGE')
+st, b, _ = get(f'{API}/rest/v1/contact_messages?select=id', H)
+check(f'contact_messages cannot be read by a visitor (HTTP {st})', st in (401, 403) or b'permission denied' in b.lower(), b[:120])
+st, b, _ = get(f'{API}/rest/v1/contact_messages', H, 'POST', json.dumps({'name': 'Test Kişi', 'phone': '0532 000 00 00', 'message': 'Merhaba merhaba', 'status': 'answered'}).encode())
+check(f'a visitor cannot choose the status (HTTP {st})', st in (401, 403), b[:120])
+st, b, _ = get(f'{API}/rest/v1/contact_messages?id=eq.{UUID}', H, 'PATCH', json.dumps({'status': 'read'}).encode())
+check(f'a visitor cannot change a message (HTTP {st})', st in (401, 403), b[:120])
+st, b, _ = get(f'{API}/rest/v1/contact_messages?id=not.is.null', H, 'DELETE')
+check(f'a visitor cannot delete messages (HTTP {st})', st in (401, 403), b[:120])
 
 print(f'\nRESULT: {ok} passed, {fail} failed')
 sys.exit(1 if fail else 0)

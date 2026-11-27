@@ -27,6 +27,7 @@ describe('every legal text', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByRole('heading', { level: 1, name: title })).toBeInTheDocument()
     expect(screen.getByRole('note')).toHaveTextContent(DRAFT_NOTE)
+    expect(screen.getByRole('note').textContent).toMatch(/taslaktır.*hukukçu tarafından incelenmelidir/) // the words themselves, not only the constant
   })
 })
 
