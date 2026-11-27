@@ -1,0 +1,27 @@
+# Breaks of supabase/migrations/0011_contact_messages.sql (slice 12)
+MIGRATION = 'supabase/migrations/0011_contact_messages.sql'
+BREAKS = [
+ ('C01', 'a one-letter name is accepted', "char_length(btrim(name)) between 2 and 120", "char_length(btrim(name)) between 1 and 120"),
+ ('C02', 'a name may be 1200 characters', "char_length(btrim(name)) between 2 and 120", "char_length(btrim(name)) between 2 and 1200"),
+ ('C03', 'a phone of 1 character is accepted', "char_length(phone) between 7 and 30", "char_length(phone) between 1 and 30"),
+ ('C04', 'a phone may be 300 characters', "char_length(phone) between 7 and 30", "char_length(phone) between 7 and 300"),
+ ('C05', 'an e-mail needs no @', "(char_length(email) <= 200 and email like '%_@_%')", "char_length(email) <= 200"),
+ ('C06', 'an e-mail may be 2000 characters', "char_length(email) <= 200 and", "char_length(email) <= 2000 and"),
+ ('C07', 'a message of 1 character is accepted', "char_length(btrim(message)) between 5 and 2000", "char_length(btrim(message)) between 1 and 2000"),
+ ('C08', 'a message may be 20000 characters', "char_length(btrim(message)) between 5 and 2000", "char_length(btrim(message)) between 5 and 20000"),
+ ('C09', 'a status "closed" is accepted', "status in ('new', 'read', 'answered')", "status in ('new', 'read', 'answered', 'closed')"),
+ ('C10', 'a note may be 10000 characters', "char_length(admin_note) <= 1000", "char_length(admin_note) <= 10000"),
+ ('C11', 'a message needs neither phone nor e-mail', "  check (phone is not null or email is not null)", "  check (true)"),
+ ('C12', 'row level security is off', "alter table public.contact_messages enable row level security;", "-- rls off"),
+ ('C13', 'the default rights are not taken away', "revoke all on public.contact_messages from anon, authenticated;", "-- not revoked"),
+ ('C14', 'a visitor may choose the status', "grant insert (name, phone, email, message) on", "grant insert (name, phone, email, message, status) on"),
+ ('C15', 'a visitor may read the messages', "grant select, delete on public.contact_messages to authenticated;", "grant select, delete on public.contact_messages to anon, authenticated;"),
+ ('C16', 'everybody logged in reads the messages', 'create policy "contact_messages: admin read" on public.contact_messages for select to authenticated\n  using (private.is_any_admin());', 'create policy "contact_messages: admin read" on public.contact_messages for select to authenticated\n  using (true);'),
+ ('C17', 'everybody logged in can change the status', 'for update to authenticated\n  using (private.is_any_admin())\n  with check (private.is_any_admin());', 'for update to authenticated\n  using (true)\n  with check (true);'),
+ ('C18', 'everybody logged in can delete', 'for delete to authenticated\n  using (private.is_any_admin());', 'for delete to authenticated\n  using (true);'),
+ ('C19', 'an admin may rewrite the visitor\'s message', "grant update (status, admin_note) on", "grant update (status, admin_note, message) on"),
+ ('C20', 'a logged-in resident may not send a message', 'for insert to anon, authenticated\n  with check', 'for insert to anon\n  with check'),
+ ('C21', 'a message can have no name', "  name        text not null check (", "  name        text check ("),
+ ('C22', 'a message can have no text', "  message     text not null check (", "  message     text check ("),
+ ('C23', 'a new message starts as "read"', "status      text not null default 'new'", "status      text not null default 'read'"),
+]

@@ -100,11 +100,12 @@ describe('routes', () => {
   })
 
   it.each([
-    ['/profil', 'resident'],
-    ['/yonetim/profil', 'admin'],
-  ] as const)('opens the real Profil page at %s for a signed-in %s (the panel menu and the page title are there)', async (path, role) => {
+    ['/profil', 'resident', 'Profilim'],
+    ['/yonetim/profil', 'admin', 'Profilim'],
+    ['/yonetim/mesajlar', 'admin', 'İletişim Mesajları'],
+  ] as const)('opens the real page at %s for a signed-in %s (the panel menu and the page title are there)', async (path, role, title) => {
     renderSignedIn(path, role)
-    expect(await screen.findByRole('heading', { level: 1, name: 'Profilim' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument() // inside the panel layout
   })
 
