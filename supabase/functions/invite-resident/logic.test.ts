@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   corsHeadersFor,
+  decideAdminLink,
   decideLink,
+  errorCodeForRpc,
   inviteRedirectFor,
   linkTypeFor,
   normalizeEmail,
@@ -84,6 +86,92 @@ describe('parseRequest: link', () => {
     expect(parseRequest({ action: 'link' })).toMatchObject({ ok: false })
     expect(parseRequest({ action: 'link', profileId: 'x' })).toMatchObject({ ok: false })
     expect(parseRequest({ action: 'link', profileId: `${PROFILE}'--` })).toMatchObject({ ok: false })
+  })
+})
+
+const SITE = '20000000-0000-0000-0000-0000000000A1'
+
+describe('parseRequest: invite-admin', () => {
+  const valid = { action: 'invite-admin', email: '  Berk@Ornek.COM ', fullName: ' Berk Yılmaz ', phone: '0532 000 00 00', siteId: SITE }
+  it('accepts a valid admin invite and cleans it up (e-mail lower case, name trimmed, site id lower case)', () => {
+    expect(parseRequest(valid)).toEqual({
+      ok: true,
+      value: { action: 'invite-admin', email: 'berk@ornek.com', fullName: 'Berk Yılmaz', phone: '0532 000 00 00', siteId: SITE.toLowerCase() },
+    })
+  })
+  it('treats the phone as optional', () => {
+    expect(parseRequest({ ...valid, phone: '' })).toMatchObject({ ok: true, value: { phone: null } })
+    const { phone: _phone, ...withoutPhone } = valid
+    expect(parseRequest(withoutPhone)).toMatchObject({ ok: true, value: { phone: null } })
+  })
+  it('rejects a bad e-mail, a short or long name, a bad phone and a missing or malformed site id', () => {
+    expect(parseRequest({ ...valid, email: 'not-an-address' })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, email: `${'a'.repeat(200)}@b.com` })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, fullName: 'A' })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, fullName: 'A'.repeat(201) })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, phone: 'abc' })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, siteId: undefined })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, siteId: 'x' })).toMatchObject({ ok: false })
+    expect(parseRequest({ ...valid, siteId: `${SITE}'--` })).toMatchObject({ ok: false })
+  })
+  it('does not trust extra fields (a role or a person id sent by the browser is dropped)', () => {
+    const parsed = parseRequest({ ...valid, role: 'owner', profileId: PROFILE, unitId: UNIT })
+    expect(parsed).toMatchObject({ ok: true })
+    if (parsed.ok) expect(Object.keys(parsed.value).sort()).toEqual(['action', 'email', 'fullName', 'phone', 'siteId'])
+  })
+})
+
+describe('parseRequest: admin-link', () => {
+  it('accepts a site id and a profile id (any letter case)', () => {
+    expect(parseRequest({ action: 'admin-link', siteId: SITE, profileId: PROFILE })).toEqual({
+      ok: true,
+      value: { action: 'admin-link', siteId: SITE.toLowerCase(), profileId: PROFILE.toLowerCase() },
+    })
+  })
+  it('rejects a missing or malformed id', () => {
+    expect(parseRequest({ action: 'admin-link', profileId: PROFILE })).toMatchObject({ ok: false })
+    expect(parseRequest({ action: 'admin-link', siteId: SITE })).toMatchObject({ ok: false })
+    expect(parseRequest({ action: 'admin-link', siteId: 'x', profileId: PROFILE })).toMatchObject({ ok: false })
+    expect(parseRequest({ action: 'admin-link', siteId: SITE, profileId: 'x' })).toMatchObject({ ok: false })
+  })
+})
+
+describe('decideAdminLink: a pending admin may get a fresh link from an admin of the same site', () => {
+  const pendingAdmin = { isCaller: false, isActive: true, isAdminOfThisSite: true, kvkkConsentAt: null }
+  it('allows an active admin of this site who has not finished the invite page', () => {
+    expect(decideAdminLink(pendingAdmin)).toEqual({ allowed: true })
+  })
+  it('never gives a link for the admin themselves', () => {
+    expect(decideAdminLink({ ...pendingAdmin, isCaller: true })).toEqual({ allowed: false, reason: 'self' })
+  })
+  it('never gives a link for a deactivated person', () => {
+    expect(decideAdminLink({ ...pendingAdmin, isActive: false })).toEqual({ allowed: false, reason: 'inactive' })
+  })
+  it('never gives a link for someone who is no admin of THIS site (a resident, or an admin of another site)', () => {
+    expect(decideAdminLink({ ...pendingAdmin, isAdminOfThisSite: false })).toEqual({ allowed: false, reason: 'not_admin' })
+  })
+  it('never gives a link for someone who finished onboarding (they reset by e-mail)', () => {
+    expect(decideAdminLink({ ...pendingAdmin, kvkkConsentAt: '2026-11-08T10:00:00Z' })).toEqual({ allowed: false, reason: 'already_active' })
+  })
+  it('checks "self" first, then "inactive", then "not an admin", then "already active"', () => {
+    expect(decideAdminLink({ isCaller: true, isActive: false, isAdminOfThisSite: false, kvkkConsentAt: 'x' })).toMatchObject({ reason: 'self' })
+    expect(decideAdminLink({ isCaller: false, isActive: false, isAdminOfThisSite: false, kvkkConsentAt: 'x' })).toMatchObject({ reason: 'inactive' })
+    expect(decideAdminLink({ isCaller: false, isActive: true, isAdminOfThisSite: false, kvkkConsentAt: 'x' })).toMatchObject({ reason: 'not_admin' })
+  })
+})
+
+describe('errorCodeForRpc: what the answer of add_site_admin means', () => {
+  it('turns "not allowed" (42501) into forbidden', () => {
+    expect(errorCodeForRpc({ code: '42501', message: 'not allowed' })).toBe('forbidden')
+  })
+  it('tells every reason a person cannot be made admin in the same way (nothing is revealed)', () => {
+    expect(errorCodeForRpc({ code: 'P0001', message: 'person_not_found' })).toBe('email_in_use_elsewhere')
+  })
+  it('turns "already_member" into already_linked', () => {
+    expect(errorCodeForRpc({ code: 'P0001', message: 'already_member' })).toBe('already_linked')
+  })
+  it('turns anything else, or nothing, into failed', () => {
+    for (const odd of [null, undefined, {}, { message: 'boom' }, { code: '23505' }]) expect(errorCodeForRpc(odd)).toBe('failed')
   })
 })
 

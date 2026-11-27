@@ -1,4 +1,4 @@
-// invite-resident: an admin invites a resident and gets a one-time sign-in link back.
+// invite-resident: an admin invites a resident (or another admin) and gets a one-time sign-in link back.
 //
 // Why this is an Edge Function: creating a user needs the SECRET key, which must never reach a
 // browser. The secret key bypasses Row Level Security, so EVERY permission check is written here
@@ -8,11 +8,16 @@
 // Why a link instead of an e-mail: on the free Supabase plan the built-in e-mail service only sends
 // to members of your Supabase organization. The admin copies the link or sends it by WhatsApp.
 //
-// Two actions:
+// Four actions:
 //   { action: 'invite', email, fullName, phone?, unitId, relation, startDate? }
 //        create the person (or link an existing one of the same company) to a unit
 //   { action: 'link', profileId }
 //        a new link for a resident who has not finished the invite page yet
+//   { action: 'invite-admin', email, fullName, phone?, siteId }
+//        make a person an ADMIN of a site (a new account, or someone the company already knows). The database function
+//        add_site_admin() decides who may become admin; it runs with the CALLER'S token, so the audit log names the caller.
+//   { action: 'admin-link', siteId, profileId }
+//        a new link for an admin of that site who has not finished the invite page yet
 //
 // Never log links or tokens.
 import '@supabase/functions-js/edge-runtime.d.ts'
@@ -20,11 +25,15 @@ import { withSupabase } from '@supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   corsHeadersFor,
+  decideAdminLink,
   decideLink,
+  errorCodeForRpc,
   inviteRedirectFor,
   linkTypeFor,
   parseRequest,
   STATUS_FOR,
+  type AdminInviteBody,
+  type AdminLinkBody,
   type ErrorCode,
   type InviteBody,
 } from './logic.ts'
@@ -154,6 +163,74 @@ async function invite(admin: Admin, callerId: string, body: InviteBody, redirect
   return json({ ok: true, status: createdNow ? 'invited' : 'linked', profileId: userId, link })
 }
 
+/** May the caller get a link for this person as a (pending) admin of THIS site? Applies decideAdminLink() to real data. */
+async function adminLinkAllowed(admin: Admin, callerId: string, siteId: string, profileId: string): Promise<'ok' | ErrorCode> {
+  const { data: profile } = await admin.from('profiles').select('id, is_active, kvkk_consent_at').eq('id', profileId).maybeSingle()
+  if (!profile) return 'forbidden'
+  const { data: member } = await admin.from('site_members').select('profile_id').eq('profile_id', profileId).eq('site_id', siteId).eq('role', 'admin').maybeSingle()
+  const decision = decideAdminLink({
+    isCaller: profileId === callerId,
+    isActive: Boolean(profile.is_active),
+    isAdminOfThisSite: Boolean(member),
+    kvkkConsentAt: profile.kvkk_consent_at ?? null,
+  })
+  if (decision.allowed) return 'ok'
+  return decision.reason === 'already_active' ? 'already_active' : 'forbidden'
+}
+
+async function inviteAdmin(admin: Admin, user: Admin, callerId: string, body: AdminInviteBody, redirectTo: string): Promise<Response> {
+  // The caller must be an ACTIVE admin of the site named in the request. Any other answer is the same "forbidden".
+  if (!(await isActiveSiteAdmin(admin, callerId, body.siteId))) return fail('forbidden')
+
+  const { data: existing } = await admin.from('profiles').select('id, is_active').eq('email', body.email).maybeSingle()
+
+  let userId: string
+  let createdNow = false
+  let link: string | null = null
+
+  if (existing) {
+    if (!existing.is_active) return fail('account_inactive')
+    userId = existing.id
+  } else {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: 'invite',
+      email: body.email,
+      options: { data: { full_name: body.fullName }, redirectTo },
+    })
+    if (error || !data?.user) {
+      console.error('generateLink failed:', error?.code ?? 'no-user')
+      return fail(error?.code === 'email_exists' ? 'email_in_use_elsewhere' : 'failed')
+    }
+    userId = data.user.id
+    createdNow = true
+    link = data.properties?.action_link ?? null
+    if (body.phone) await admin.from('profiles').update({ phone: body.phone }).eq('id', userId)
+  }
+
+  // The database decides who may become an admin (another company, deactivated, already a member ...). It runs as the CALLER.
+  const added = await user.rpc('add_site_admin', { p_site: body.siteId, p_profile: userId })
+  if (added.error) {
+    // Do not leave a half-made account behind.
+    if (createdNow) await admin.auth.admin.deleteUser(userId)
+    return fail(errorCodeForRpc(added.error))
+  }
+
+  // An existing person who never finished the invite page may get a fresh link, under the same rules.
+  if (!createdNow && (await adminLinkAllowed(admin, callerId, body.siteId, userId)) === 'ok') {
+    link = await issueLink(admin, userId, redirectTo)
+  }
+
+  return json({ ok: true, status: createdNow ? 'invited' : 'linked', profileId: userId, link })
+}
+
+async function adminRelink(admin: Admin, callerId: string, body: AdminLinkBody, redirectTo: string): Promise<Response> {
+  if (!(await isActiveSiteAdmin(admin, callerId, body.siteId))) return fail('forbidden')
+  const verdict = await adminLinkAllowed(admin, callerId, body.siteId, body.profileId)
+  if (verdict !== 'ok') return fail(verdict)
+  const link = await issueLink(admin, body.profileId, redirectTo)
+  return link ? json({ ok: true, status: 'link', profileId: body.profileId, link }) : fail('failed')
+}
+
 async function relink(admin: Admin, callerId: string, profileId: string, redirectTo: string): Promise<Response> {
   // Which sites does this person live in, and does the caller administer one of them?
   const { data: rows } = await admin.from('unit_residents').select('units!inner(blocks!inner(site_id))').eq('profile_id', profileId)
@@ -197,9 +274,17 @@ const handler = withSupabase({ auth: 'user', cors: 'disabled' }, async (req, ctx
 
   try {
     const admin = ctx.supabaseAdmin as Admin
-    return parsed.value.action === 'invite'
-      ? await invite(admin, callerId, parsed.value, redirectTo)
-      : await relink(admin, callerId, parsed.value.profileId, redirectTo)
+    const user = ctx.supabase as Admin // acts as the caller: row security and auth.uid() are the caller's
+    switch (parsed.value.action) {
+      case 'invite':
+        return await invite(admin, callerId, parsed.value, redirectTo)
+      case 'link':
+        return await relink(admin, callerId, parsed.value.profileId, redirectTo)
+      case 'invite-admin':
+        return await inviteAdmin(admin, user, callerId, parsed.value, redirectTo)
+      case 'admin-link':
+        return await adminRelink(admin, callerId, parsed.value, redirectTo)
+    }
   } catch (error) {
     console.error('invite-resident failed:', error instanceof Error ? error.name : 'unknown')
     return fail('failed')

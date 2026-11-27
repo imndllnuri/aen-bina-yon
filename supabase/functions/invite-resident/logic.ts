@@ -54,7 +54,21 @@ export interface LinkBody {
   action: 'link'
   profileId: string
 }
-export type RequestBody = InviteBody | LinkBody
+/** An admin invites a person to be an ADMIN of a site (a new account, or someone the company already knows). */
+export interface AdminInviteBody {
+  action: 'invite-admin'
+  email: string
+  fullName: string
+  phone: string | null
+  siteId: string
+}
+/** A fresh sign-in link for an admin of this site who has not finished the invite page yet. */
+export interface AdminLinkBody {
+  action: 'admin-link'
+  siteId: string
+  profileId: string
+}
+export type RequestBody = InviteBody | LinkBody | AdminInviteBody | AdminLinkBody
 export type ParseResult = { ok: true; value: RequestBody } | { ok: false; message: string }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -79,6 +93,23 @@ export function parseRequest(raw: unknown): ParseResult {
   if (body.action === 'link') {
     if (!UUID.test(text('profileId'))) return { ok: false, message: 'profileId must be a uuid' }
     return { ok: true, value: { action: 'link', profileId: text('profileId').toLowerCase() } }
+  }
+
+  if (body.action === 'admin-link') {
+    if (!UUID.test(text('siteId'))) return { ok: false, message: 'siteId must be a uuid' }
+    if (!UUID.test(text('profileId'))) return { ok: false, message: 'profileId must be a uuid' }
+    return { ok: true, value: { action: 'admin-link', siteId: text('siteId').toLowerCase(), profileId: text('profileId').toLowerCase() } }
+  }
+
+  if (body.action === 'invite-admin') {
+    const email = normalizeEmail(text('email'))
+    if (!EMAIL.test(email) || email.length > 200) return { ok: false, message: 'invalid e-mail' }
+    const fullName = text('fullName')
+    if (fullName.length < 2 || fullName.length > 200) return { ok: false, message: 'fullName must be 2-200 characters' }
+    const phone = text('phone')
+    if (phone !== '' && !PHONE.test(phone)) return { ok: false, message: 'invalid phone' }
+    if (!UUID.test(text('siteId'))) return { ok: false, message: 'siteId must be a uuid' }
+    return { ok: true, value: { action: 'invite-admin', email, fullName, phone: phone === '' ? null : phone, siteId: text('siteId').toLowerCase() } }
   }
 
   if (body.action === 'invite') {
@@ -165,6 +196,42 @@ export function decideLink(subject: LinkSubject): LinkDecision {
   if (subject.hasSiteMembership) return { allowed: false, reason: 'staff' }
   if (subject.kvkkConsentAt !== null) return { allowed: false, reason: 'already_active' }
   return { allowed: true }
+}
+
+// ---------------------------------------------------------------------------
+// The same question for an ADMIN of a site
+// ---------------------------------------------------------------------------
+// A pending admin (invited, invite page not finished) may get a fresh link from another admin of THE SAME site. The rules are
+// the ones above, except that "is an admin of this site" is now required instead of forbidden.
+export interface AdminLinkSubject {
+  isCaller: boolean
+  isActive: boolean
+  /** The person has a site_members row with role admin for THIS site. */
+  isAdminOfThisSite: boolean
+  /** profiles.kvkk_consent_at; null means onboarding is not finished. */
+  kvkkConsentAt: string | null
+}
+
+export type AdminLinkDecision = { allowed: true } | { allowed: false; reason: 'self' | 'inactive' | 'not_admin' | 'already_active' }
+
+export function decideAdminLink(subject: AdminLinkSubject): AdminLinkDecision {
+  if (subject.isCaller) return { allowed: false, reason: 'self' }
+  if (!subject.isActive) return { allowed: false, reason: 'inactive' }
+  if (!subject.isAdminOfThisSite) return { allowed: false, reason: 'not_admin' }
+  if (subject.kvkkConsentAt !== null) return { allowed: false, reason: 'already_active' }
+  return { allowed: true }
+}
+
+/**
+ * What the answer of the database function add_site_admin means for the person who invited.
+ * "person_not_found" is the database's one answer for every reason a person cannot be made admin (another company, deactivated,
+ * unknown), so it is told as "e-mail in use elsewhere": the caller learns nothing more.
+ */
+export function errorCodeForRpc(error: { message?: string; code?: string } | null | undefined): ErrorCode {
+  if (error?.code === '42501') return 'forbidden'
+  if (error?.message === 'person_not_found') return 'email_in_use_elsewhere'
+  if (error?.message === 'already_member') return 'already_linked'
+  return 'failed'
 }
 
 /**

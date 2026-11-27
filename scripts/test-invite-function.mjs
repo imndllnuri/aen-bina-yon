@@ -183,19 +183,70 @@ try {
   const asResidentLink = await call('resident', { action: 'link', profileId: pendingId })
   check('32 a resident asking for someone else\'s link -> 403', asResidentLink.status === 403)
 
+  console.log('--- admins: "invite-admin" and "admin-link" ---')
+  const adminBody = (overrides = {}) => ({ action: 'invite-admin', email: emailOf('newadmin'), fullName: 'Yeni Yönetici', phone: '0532 222 33 44', siteId: ids.site1, ...overrides })
+  const aResident = await call('resident', adminBody({ email: emailOf('y1') }))
+  check('33 a resident cannot invite an admin -> 403', aResident.status === 403 && aResident.json?.error === 'forbidden', JSON.stringify(aResident.json))
+  const aOther = await call('adminB', adminBody({ email: emailOf('y2') }))
+  check('34 an admin of ANOTHER site cannot invite an admin to this site -> 403', aOther.status === 403 && aOther.json?.error === 'forbidden', JSON.stringify(aOther.json))
+  const aInactive = await call('inactiveAdmin', adminBody({ email: emailOf('y3') }))
+  check('35 a DEACTIVATED admin cannot invite -> 403', aInactive.status === 403)
+  const aBroken = await call('adminA', { action: 'invite-admin', email: emailOf('y4'), fullName: 'Yeni Yönetici' })
+  check('36 a request without a site -> 400', aBroken.status === 400 && aBroken.json?.error === 'invalid_request')
+  const aGhostSite = await call('adminA', adminBody({ email: emailOf('y5'), siteId: randomUUID() }))
+  check('37 an unknown site gives the SAME 403 (no way to probe which sites exist)', aGhostSite.status === 403 && aGhostSite.json?.error === 'forbidden')
+  const aLeak = sql(`select count(*) from auth.users where email in ('${emailOf('y1')}','${emailOf('y2')}','${emailOf('y3')}','${emailOf('y4')}','${emailOf('y5')}')`)
+  check('38 none of the refused calls created an account', aLeak === '0', `${aLeak} accounts`)
+
+  const newAdmin = await call('adminA', adminBody())
+  check('39 an admin invites a new admin -> 200 "invited" with a link', newAdmin.status === 200 && newAdmin.json?.ok === true && newAdmin.json?.status === 'invited' && typeof newAdmin.json?.link === 'string', JSON.stringify(newAdmin.json))
+  const newAdminId = newAdmin.json?.profileId ?? ''
+  const adminRow = sql(`select p.full_name, p.phone, (p.kvkk_consent_at is null) as pending, m.role from public.profiles p join public.site_members m on m.profile_id = p.id where p.id = '${newAdminId}' and m.site_id = '${ids.site1}'`)
+  check('40 the person is an admin of the site, name and phone saved, onboarding still open', adminRow === 'Yeni Yönetici|0532 222 33 44|t|admin', adminRow)
+  const audited = sql(`select count(*) from public.audit_log where table_name = 'site_members' and action = 'insert' and row_id = '${newAdminId}' and actor_id = '${users.adminA.id}'`)
+  check('41 the audit log names the ADMIN WHO INVITED (not "nobody")', audited === '1', `rows: ${audited}`)
+  const sameAgain = await call('adminA', adminBody())
+  check('42 the same e-mail again -> 409 already_linked, still one account', sameAgain.status === 409 && sameAgain.json?.error === 'already_linked' && sql(`select count(*) from auth.users where email = '${emailOf('newadmin')}'`) === '1', JSON.stringify(sameAgain.json))
+
+  const resAdmin = await call('adminA', adminBody({ email: users.resident.email, fullName: 'Sakin Aktif' }))
+  check('43 a resident who finished onboarding becomes admin, with NO link (no impersonation)', resAdmin.status === 200 && resAdmin.json?.status === 'linked' && resAdmin.json?.link === null, JSON.stringify(resAdmin.json))
+  check('44 ...and is an admin now', sql(`select count(*) from public.site_members where profile_id = '${users.resident.id}' and site_id = '${ids.site1}' and role = 'admin'`) === '1')
+  const aElsewhere = await call('adminA', adminBody({ email: users.adminB.email, fullName: 'Admin B' }))
+  check('45 an account of ANOTHER company is not made admin -> 409 email_in_use_elsewhere', aElsewhere.status === 409 && aElsewhere.json?.error === 'email_in_use_elsewhere', JSON.stringify(aElsewhere.json))
+  check('46 ...and nothing was attached to that account', sql(`select count(*) from public.site_members where profile_id = '${users.adminB.id}' and site_id = '${ids.site1}'`) === '0')
+  const aInactiveAccount = await call('adminA', adminBody({ email: users.stranger.email, fullName: 'Yabancı' }))
+  check('47 a DEACTIVATED account cannot be made admin -> 409 account_inactive', aInactiveAccount.status === 409 && aInactiveAccount.json?.error === 'account_inactive', JSON.stringify(aInactiveAccount.json))
+
+  const aFresh = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: newAdminId })
+  check('48 a pending admin gets a fresh link (an invite link, never clicked)', aFresh.status === 200 && typeof aFresh.json?.link === 'string' && aFresh.json.link.includes('type=invite'), JSON.stringify(aFresh.json))
+  const aDone = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: users.resident.id })
+  check('49 an admin who FINISHED onboarding -> 409 already_active, no link', aDone.status === 409 && aDone.json?.error === 'already_active' && !aDone.json?.link, JSON.stringify(aDone.json))
+  const aSelf = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: users.adminA.id })
+  check('50 a link for yourself -> 403', aSelf.status === 403)
+  const aNotAdmin = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: pendingId })
+  check('51 a link for a person who is no admin of the site (a pending RESIDENT) -> 403', aNotAdmin.status === 403, JSON.stringify(aNotAdmin.json))
+  const aOtherSite = await call('adminB', { action: 'admin-link', siteId: ids.site1, profileId: newAdminId })
+  check('52 an admin of another site asking for this site\'s admin -> 403', aOtherSite.status === 403)
+  const aAsStaff = await call('staff', { action: 'admin-link', siteId: ids.site1, profileId: newAdminId })
+  check('53 a staff member (not admin) asking for an admin link -> 403', aAsStaff.status === 403)
+  const aInactiveTarget = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: users.inactiveAdmin.id })
+  check('54 a link for a deactivated admin -> 403', aInactiveTarget.status === 403)
+
   console.log('--- hygiene ---')
   const logs = execSync(`docker logs --since ${startedAt} supabase_edge_runtime_aen-bina-yon 2>&1 || true`).toString()
   const leakedInLogs = /access_token|refresh_token|verify\?token|action_link|token_hash/i.test(logs)
-  check('33 no link or token appears in the function logs', !leakedInLogs, leakedInLogs ? logs.split('\n').filter((l) => /token|action_link/i.test(l)).slice(0, 2).join(' | ') : '')
+  check('55 no link or token appears in the function logs', !leakedInLogs, leakedInLogs ? logs.split('\n').filter((l) => /token|action_link/i.test(l)).slice(0, 2).join(' | ') : '')
 } finally {
   // ---- cleanup (never leave test data behind) ----
   try {
-    const emails = Object.values(users).map((u) => `'${u.email}'`).concat([`'${emailOf('newperson')}'`])
+    const emails = Object.values(users).map((u) => `'${u.email}'`).concat([`'${emailOf('newperson')}'`, `'${emailOf('newadmin')}'`])
     sql(`delete from public.unit_residents where profile_id in (select id from public.profiles where email in (${emails.join(',')}));
          delete from public.site_members where site_id in ('${ids.site1}', '${ids.site2}');`)
     for (const user of Object.values(users)) await adminApi(`users/${user.id}`, null, 'DELETE')
     const leftover = sql(`select id from auth.users where email = '${emailOf('newperson')}'`)
     if (leftover) await adminApi(`users/${leftover}`, null, 'DELETE')
+    const leftoverAdmin = sql(`select id from auth.users where email = '${emailOf('newadmin')}'`)
+    if (leftoverAdmin) await adminApi(`users/${leftoverAdmin}`, null, 'DELETE')
     sql(`delete from public.units where block_id in ('${ids.block1}', '${ids.block2}');
          delete from public.blocks where site_id in ('${ids.site1}', '${ids.site2}');
          delete from public.sites where company_id in ('${ids.company1}', '${ids.company2}');
