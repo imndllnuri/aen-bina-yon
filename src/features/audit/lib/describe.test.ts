@@ -74,6 +74,10 @@ describe('summarize and headline', () => {
     expect(plain(summarize(row({ table: 'transfer_notices', newData: { amount: 50, sender_name: 'Ali' } })))).toBe('₺50,00 · Ali')
     expect(plain(summarize(row({ table: 'charge_batches', newData: { total: 1000, unit_count: 16 } })))).toBe('₺1.000,00 · 16 daire')
     expect(summarize(row({ table: 'site_members', newData: { role: 'admin' } }))).toBe('Yönetici')
+    expect(summarize(row({ table: 'site_members', newData: { role: 'admin', person: 'Ece Yılmaz' } }))).toBe('Yönetici: Ece Yılmaz')
+    expect(summarize(row({ table: 'site_members', action: 'delete', oldData: { role: 'admin', person: 'Berk Admin' }, newData: null }))).toBe('Yönetici: Berk Admin') // a removed person is still named
+    expect(summarize(row({ table: 'site_members', newData: { role: 'staff', person: 'Görevli Kişi' } }))).toBe('staff: Görevli Kişi')
+    expect(fieldLabel('person')).toBe('Kişi')
   })
   it('says nothing for a table it does not know, and does not crash on empty data', () => {
     expect(summarize(row({ table: 'strange', newData: { a: 1 } }))).toBe('')

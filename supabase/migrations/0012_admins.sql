@@ -17,6 +17,8 @@
 --   * a deactivated person cannot be made admin;
 --   * the site row is locked while a change runs, so two admins cannot remove each other at the same moment.
 -- Every change is audited by the trigger of 0009 and names the CALLER (auth.uid() is the caller inside these functions).
+-- The log row of an admin change also carries the NAME of the person who was added or removed ("person"): the audit row itself only
+-- holds the person's id, and a removed person would otherwise be a bare number.
 --
 -- The invite function (Edge Function) creates the new account with the secret key and then calls add_site_admin WITH THE
 -- CALLER'S OWN TOKEN, so the audit log shows who invited, not "nobody".
@@ -147,3 +149,35 @@ revoke all on function public.remove_site_admin(uuid, uuid) from public, anon;
 grant execute on function public.list_site_admins(uuid) to authenticated;
 grant execute on function public.add_site_admin(uuid, uuid) to authenticated;
 grant execute on function public.remove_site_admin(uuid, uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 5. the audit log names the PERSON of an admin change
+-- ---------------------------------------------------------------------------
+-- A BEFORE INSERT trigger on audit_log (so the generic audit trigger of 0009 stays as it is). It only touches rows of site_members
+-- and never raises: if the person cannot be found the row is written without a name.
+create or replace function private.audit_log_name_person()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_name text;
+begin
+  if new.table_name = 'site_members'
+     and new.row_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    select left(coalesce(nullif(btrim(p.full_name), ''), p.email), 200) into v_name
+      from public.profiles p
+     where p.id = new.row_id::uuid;
+    if v_name is not null then
+      if new.new_data is not null then new.new_data := new.new_data || jsonb_build_object('person', v_name); end if;
+      if new.old_data is not null then new.old_data := new.old_data || jsonb_build_object('person', v_name); end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.audit_log_name_person() from public, anon, authenticated;
+
+create trigger audit_log_name_person before insert on public.audit_log
+  for each row execute function private.audit_log_name_person();

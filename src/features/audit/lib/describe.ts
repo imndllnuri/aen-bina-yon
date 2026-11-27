@@ -36,7 +36,7 @@ const FIELD_LABEL: Record<string, string> = {
   tenant_visible_default: 'Kiracıya yansır (varsayılan)', active: 'Kullanımda', sort_order: 'Sıra', unit_count: 'Daire sayısı', split_method: 'Dağıtım yöntemi',
   karar_no: 'Karar no', karar_date: 'Karar tarihi', created_by: 'Oluşturan', created_at: 'Oluşturulma', site_id: 'Site', company_id: 'Firma', batch_id: 'Toplu işlem',
   charge_type_id: 'Borç türü', recurring_plan_id: 'Aylık plan', day_of_month: 'Ayın günü', target: 'Hedef', note: 'Not', file_path: 'Dosya', payment_id: 'Ödeme',
-  type_: 'Tür', resend_count: 'Yeniden gönderim', last_resent_at: 'Son yeniden gönderim', rated_at: 'Puan zamanı', installments: 'Taksit', logo_url: 'Logo',
+  person: 'Kişi', type_: 'Tür', resend_count: 'Yeniden gönderim', last_resent_at: 'Son yeniden gönderim', rated_at: 'Puan zamanı', installments: 'Taksit', logo_url: 'Logo',
 }
 export const fieldLabel = (key: string) => FIELD_LABEL[key] ?? key
 
@@ -108,8 +108,11 @@ export function summarize(row: AuditLike): string {
       return str(d.name)
     case 'transfer_notices':
       return [typeof d.amount === 'number' ? formatTRY(d.amount) : '', str(d.sender_name)].filter(Boolean).join(' · ')
-    case 'site_members':
-      return str(d.role) === 'admin' ? 'Yönetici' : str(d.role)
+    case 'site_members': {
+      // the database writes the NAME of the person into the row (migration 0012): "Yönetici: Ece Yılmaz"
+      const role = str(d.role) === 'admin' ? 'Yönetici' : str(d.role)
+      return str(d.person) ? `${role}: ${str(d.person)}` : role
+    }
     case 'companies':
       return str(d.name)
     default:

@@ -8,7 +8,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(64);
+select plan(71);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -43,6 +43,14 @@ create function tt.audits(p_table text, p_action text, p_row uuid, p_actor uuid)
   select count(*)::integer from public.audit_log where table_name = p_table and action = p_action and row_id = p_row::text and actor_id = p_actor
 $$;
 grant execute on function tt.audits(text, text, uuid, uuid) to authenticated;
+-- one text value out of the newest audit row of a person's site_members change
+create function tt.audit_value(p_action text, p_row uuid, p_side text, p_key text) returns text language plpgsql security definer set search_path = '' as $$
+declare v text;
+begin
+  execute format('select %I ->> $1 from public.audit_log where table_name = ''site_members'' and action = $2 and row_id = $3 order by id desc limit 1', p_side) into v using p_key, p_action, p_row::text;
+  return v;
+end; $$;
+grant execute on function tt.audit_value(text, uuid, text, text) to authenticated;
 
 insert into public.companies (id, name) values ('10000000-0000-0000-0000-0000000000c1', 'Firma 1'), ('10000000-0000-0000-0000-0000000000c2', 'Firma 2');
 insert into public.sites (id, company_id, name) values (tt.siteX(), '10000000-0000-0000-0000-0000000000c1', 'Site X'), (tt.siteY(), '10000000-0000-0000-0000-0000000000c2', 'Site Y');
@@ -134,6 +142,9 @@ reset role; select set_config('request.jwt.claims', '', true);
 select is(tt.admins(tt.siteX()), 'AA,A2,OA,S', 'the site now has four admins, newest last');
 select is(tt.audits('site_members', 'insert', tt.u('OA'), tt.u('AA')), 1, 'the change is in the audit log and names the CALLER (not "nobody")');
 select is((select count(*)::integer from public.unit_residents where profile_id = tt.u('OA')), 1, 'the new admin is still a resident too');
+select is(tt.audit_value('insert', tt.u('OA'), 'new_data', 'person'), 'Mehmet Malik', 'the audit row of an added admin carries the NAME of the person');
+select is(tt.audit_value('insert', tt.u('S'), 'new_data', 'role'), 'admin', '...next to the role it always had');
+select is((select count(*)::integer from public.audit_log where table_name <> 'site_members' and (new_data ? 'person' or old_data ? 'person')), 0, 'rows of other tables never get a "person"');
 
 select pg_temp.act_as(tt.u('OA'));
 select is((select count(*)::integer from public.list_site_admins(tt.siteX())), 4, 'the new admin can use the admin functions at once');
@@ -148,6 +159,15 @@ select pg_temp.act_as_visitor();
 select throws_ok($$select public.add_site_admin(tt.siteX(), tt.u('S'))$$, '42501', null, 'a visitor cannot add');
 reset role; select set_config('request.jwt.claims', '', true);
 
+-- a person without a name is named by the e-mail address
+insert into auth.users (id, email, raw_user_meta_data) values ('c3000000-0000-0000-0000-000000000003', 'nameless@test.local', '{}');
+select pg_temp.act_as(tt.u('AA'));
+select lives_ok($$select public.add_site_admin(tt.siteX(), 'c3000000-0000-0000-0000-000000000003')$$, 'a nameless brand-new account can be made admin');
+reset role; select set_config('request.jwt.claims', '', true);
+select is(tt.audit_value('insert', 'c3000000-0000-0000-0000-000000000003', 'new_data', 'person'), 'nameless@test.local', '...and the audit row names it by its e-mail address');
+select pg_temp.act_as(tt.u('AA'));
+select lives_ok($$select public.remove_site_admin(tt.siteX(), 'c3000000-0000-0000-0000-000000000003')$$, '...and it can be removed again');
+reset role; select set_config('request.jwt.claims', '', true);
 -- a person that belongs to nobody yet cannot be taken after they got a residency elsewhere
 insert into auth.users (id, email, raw_user_meta_data) values ('c2000000-0000-0000-0000-000000000002', 'late@test.local', '{"full_name":"Geç Gelen"}');
 insert into public.unit_residents (unit_id, profile_id, relation, start_date) values ('40000000-0000-0000-0000-000000000003', 'c2000000-0000-0000-0000-000000000002', 'tenant', current_date - 1);
@@ -168,6 +188,7 @@ select lives_ok($$select public.remove_site_admin(tt.siteX(), tt.u('OA'))$$, '..
 reset role; select set_config('request.jwt.claims', '', true);
 select is(tt.admins(tt.siteX()), 'AA,A2', 'two admins are left');
 select is(tt.audits('site_members', 'delete', tt.u('OA'), tt.u('AA')), 1, 'the removal is in the audit log and names the caller');
+select is(tt.audit_value('delete', tt.u('OA'), 'old_data', 'person'), 'Mehmet Malik', 'the audit row of a removed admin carries the NAME of the person (they are gone from the list)');
 select is((select count(*)::integer from public.profiles where id = tt.u('OA')) + (select count(*)::integer from public.unit_residents where profile_id = tt.u('OA')), 2, 'the removed person keeps their account and their residency');
 select pg_temp.act_as(tt.u('OA'));
 select throws_ok($$select * from public.list_site_admins(tt.siteX())$$, '42501', null, 'the removed person has no admin power any more, at once');
