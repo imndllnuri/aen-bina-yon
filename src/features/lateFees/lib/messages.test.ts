@@ -17,6 +17,8 @@ describe('lateFeeErrorMessage', () => {
   it('says "no permission" for a refusal', () => {
     expect(lateFeeErrorMessage({ code: '42501', message: 'not allowed' })).toBe('Bu işlem için yetkiniz yok.')
     expect(lateFeeErrorMessage({ message: 'not allowed' })).toBe('Bu işlem için yetkiniz yok.')
+    // the database may send only the code, with its own English text
+    expect(lateFeeErrorMessage({ code: '42501', message: 'permission denied for function preview_late_fees' })).toBe('Bu işlem için yetkiniz yok.')
   })
   it('gives a plain sentence for everything else and never shows a code', () => {
     for (const e of [{ message: 'request_id_used' }, { message: 'invalid_request' }, { message: 'zzz' }, new Error('boom'), null, undefined]) {

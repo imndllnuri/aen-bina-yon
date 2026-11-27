@@ -1,6 +1,7 @@
 # Breaks of supabase/migrations/0013_late_fees.sql (slice 14, the late-fee engine)
 # Not listed on purpose (equivalent mutants): the site-row lock in apply_late_fees (two admins at the same moment cannot be tested
-# from one session), the second "no fee on a fee line" guard (the type rule covers it), and the explicit column revoke (no grant exists).
+# from one session), the second "no fee on a fee line" guard (the type rule covers it), the explicit column revoke (no grant exists),
+# and the `authenticated` word in the revokes of the private functions (the schema gives that role no right by default, so the word changes nothing).
 MIGRATION = 'supabase/migrations/0013_late_fees.sql'
 RATE = "coalesce(case when jsonb_typeof(c.settings #> '{rules,late_fee_rate}') = 'number' then (c.settings #>> '{rules,late_fee_rate}')::numeric end, 5)"
 GRACE = "coalesce(case when jsonb_typeof(c.settings #> '{rules,grace_days}') = 'number' then (c.settings #>> '{rules,grace_days}')::numeric::integer end, 0)"
@@ -90,5 +91,4 @@ BREAKS = [
  # ---- grants
  ('S01', 'a visitor can run the preview', "grant execute on function public.preview_late_fees(uuid) to authenticated;", "grant execute on function public.preview_late_fees(uuid) to authenticated, anon;"),
  ('S02', 'a visitor can apply', "grant execute on function public.apply_late_fees(uuid, uuid, date, uuid[], integer, bigint) to authenticated;", "grant execute on function public.apply_late_fees(uuid, uuid, date, uuid[], integer, bigint) to authenticated, anon;"),
- ('S03', 'a logged-in user can call the rows function directly', "revoke all on function private.late_fee_rows(uuid, date) from public, anon, authenticated;", "revoke all on function private.late_fee_rows(uuid, date) from public, anon;"),
 ]

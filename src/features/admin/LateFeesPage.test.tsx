@@ -153,6 +153,7 @@ describe('Gecikme Tazminatı: warnings and problems', () => {
     expect(within(section).getByText(/40,00/)).toBeInTheDocument() // should be
     expect(within(section).getByText(/83,33/)).toBeInTheDocument() // written
     expect(within(section).getByText(/43,33/)).toBeInTheDocument() // too much
+    expect(within(section).getByText(/43,33/).textContent).not.toMatch(/-/) // shown as a plain amount, no minus sign
     expect(within(section).getByText(/kendiliğinden geri almaz/)).toBeInTheDocument()
   })
   it('has no "too high" section when there is nothing too high', async () => {

@@ -496,7 +496,8 @@ select pg_temp.act_as(tt.u('AD'));
 select is(tt.pv_line(16), 117::bigint, 'a payment at 00:30 Istanbul time counts for that day: 7 late days of 100 = 1.17 (not 6 days = 1.00)');
 reset role;
 -- a debt that has fee lines cannot be removed behind the functions' back either (the foreign key is the last guard)
-select throws_ok($$delete from public.charges where id = tt.cid(1)$$, '23503', null, 'deleting a debt that has fee lines is stopped by the foreign key');
+-- L15 has no payment, so only the fee-line link can stop this delete (L1 would be stopped by its payment record instead)
+select throws_ok($$delete from public.charges where id = tt.cid(15)$$, '23503', null, 'deleting a debt that has fee lines (even forgiven ones) is stopped by the foreign key'  );
 select ok(exists (select 1 from public.audit_log a where a.table_name = 'charges' and a.new_data ->> 'late_fee_source_id' is not null), 'the fee lines are in the audit log');
 
 select * from finish();

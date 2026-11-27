@@ -37,6 +37,7 @@ check('the slice 10 pages are in the live bundle (Tabloyu göster, İşlem Geçm
 check('the slice 11 page is in the live bundle (Profilim, E-posta bildirimleri, Şifreyi değiştir, Diğer cihazlardaki oturumları kapat)', all(x in text for x in ['Profilim', 'E-posta bildirimleri', 'Şifreyi değiştir', 'Diğer cihazlardaki oturumları kapat']))
 check('the slice 12 pages are in the live bundle (Bize yazın, Haritada aç, Çerez Politikası, Mesafeli Satış Sözleşmesi, Sıkça Sorulan Sorular, Neler dahil?)', all(x in text for x in ['Bize yazın', 'Haritada aç', 'Çerez Politikası', 'Mesafeli Satış Sözleşmesi', 'Sıkça Sorulan Sorular', 'Neler dahil?', 'İletişim Mesajları']))
 check('the slice 13 page is in the live bundle (Yönetici davet et, Yöneticiliği kaldır, Davet bekliyor)', all(x in text for x in ['Yönetici davet et', 'Yöneticiliği kaldır', 'Davet bekliyor']))
+check('the slice 14 page is in the live bundle (Gecikme Tazminatı, Onayla ve yaz, Fazla yazılmış tazminatlar)', all(x in text for x in ['Gecikme Tazminatı', 'Onayla ve yaz', 'Fazla yazılmış tazminatlar']))
 check('NO secret key in the live bundle', not re.search(r'sb_secret_[A-Za-z0-9_-]{16,}', text))
 check('no service_role key in the live bundle', 'service_role' not in text)
 
@@ -137,6 +138,17 @@ for method, path, body in [('POST', 'site_members', {'profile_id': UUID, 'site_i
 # the invite function wants a logged-in admin: with only the public key it must say 401 and create nothing
 st, b, _ = get(f'{API}/functions/v1/invite-resident', {**H, 'origin': 'https://imndllnuri.github.io'}, 'POST', json.dumps({'action': 'invite-admin', 'email': 'nobody@example.invalid', 'fullName': 'Test Kişi', 'siteId': UUID}).encode())
 check(f'the invite function refuses a call without a login (HTTP {st})', st in (401, 403), b[:120])
+
+print('10. SLICE 14: A VISITOR CANNOT TOUCH THE LATE FEES')
+rpc_group('   (functions)', {
+  'preview_late_fees': {'p_site': UUID},
+  'apply_late_fees': {'p_request_id': UUID, 'p_site': UUID, 'p_as_of': '2026-01-01', 'p_charge_ids': [], 'p_expected_count': 0, 'p_expected_kurus': 0}})
+st, b, _ = get(f'{API}/rest/v1/charges?select=late_fee_source_id,late_fee_through&limit=1', H)
+check(f'a visitor reads no fee column of charges (HTTP {st})', st in (401, 403) or b.strip() in (b'[]', b''), b[:120])
+for method, body in [('POST', {'late_fee_source_id': UUID}), ('PATCH', {'late_fee_through': '2026-01-01'})]:
+    path = 'charges' if method == 'POST' else 'charges?id=not.is.null'
+    st, b, _ = get(f'{API}/rest/v1/{path}', H, method, json.dumps(body).encode())
+    check(f'a visitor cannot {method} the late-fee columns (HTTP {st})', st in (401, 403), b[:120])
 
 print(f'\nRESULT: {ok} passed, {fail} failed')
 sys.exit(1 if fail else 0)

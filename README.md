@@ -49,6 +49,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0010_profile.sql` | the Profil page: a shape check on `profiles.notify_prefs` and `save_my_notification_prefs()` (only the person changes their own e-mail choices; see "Profil page" below) |
 | `supabase/migrations/0011_contact_messages.sql` | the public contact form: `contact_messages` (visitors insert four columns only; admins read, answer and delete; see "Public pages" below) |
 | `supabase/migrations/0012_admins.sql` | managing admins: `site_members` can no longer be written from the browser; `list_site_admins`, `add_site_admin`, `remove_site_admin`; the audit log names the person of an admin change (see "Yöneticiler" below) |
+| `supabase/migrations/0013_late_fees.sql` | the late-fee engine: two columns on `charges`, the formula `private.late_fee_amount`, `preview_late_fees` (writes nothing), `apply_late_fees`, guards on debts that have fee lines, a clearer bell text (see "Gecikme tazminatı" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -425,6 +426,37 @@ get a fresh link for a pending one, or take the admin role away.
   has lost its admin. The rules above apply to people who are logged in to the portal.
 - **Not built (named on purpose):** roles other than admin (Görevli, Denetçi: Faz 2), switching off a person's whole account from this page
   (do it in Sakinler for residents), changing an admin's e-mail.
+
+### Gecikme tazminatı: the late-fee engine (slice 14)
+
+Page: **Gecikme Tazminatı** (`/#/yonetim/gecikme-tazminati`, menu group Finans). It shows the fees that are due **today**, one line per overdue
+debt. You untick what you do not want and press **Onayla ve yaz**. **Nothing is written before that, and nothing is ever written by itself**
+(no timer, no job: a scheduled run is slice 16 and will still only run what you allow).
+
+- **The rule** (settings page: `rules.late_fee_rate` % per month, `late_fee_method`, `grace_days`; defaults 5, daily, 0). A debt is late from its
+  due date + grace days + 1. The fee is **simple interest** (no interest on interest) on the money that was **still unpaid on each late day**,
+  worked out from the real payment dates (the Istanbul day). A payment made on day d still counts as late for day d.
+  - `daily`: the sum over the late days of (unpaid amount) x rate / 100 / 30
+  - `monthly`: every started 30-day block counts in full: (unpaid amount on the first day of the block) x rate / 100
+  - not charged: lines of the type `Gecikme Tazminatı`, lines of the type `Devir Bakiyesi` (old carried debt; the user chose this), cancelled lines.
+    Only **approved** payments count: cancelling a payment makes the fee grow again at the next run.
+- **Never twice.** Each fee line is linked to its debt (`charges.late_fee_source_id`) and says up to which day it was calculated
+  (`late_fee_through`). A run only writes the NEW part: (fee up to today) - (everything already written for that debt).
+  `apply_late_fees` locks the site, works the numbers out again under the lock and compares them with what the admin saw
+  (count and total in kuruş), so two admins or two tabs cannot write the same fee twice. A request id makes a double click harmless.
+  The day is set by the server: a list seen before midnight and approved after it is refused (`preview_outdated`).
+- **Cancel = forgive, delete = undo.** A cancelled (void) fee line counts as already written: the same period is **never charged again** (the user
+  chose this). To undo a mistaken run, **delete** the batch (Borçlandırma > Toplu işlemler > Sil, only in the first 15 minutes): nothing is left
+  and the run can be repeated.
+- **A fee written too high** (a payment dated in the past was entered later, or the rate was lowered) is **never taken back by itself**. The page
+  lists it under "Fazla yazılmış tazminatlar" and the admin cancels that line by hand. Changing the rate, the method or the grace makes the
+  calculation start again from the due date with the new values: the missing part is written, the extra part is shown.
+- **A debt that has fee lines cannot just disappear:** `void_charge` and `void_charge_batch` answer `has_late_fees` (cancel the fee lines first), and
+  `delete_charge_batch` answers `batch_has_late_fees`. A fee line is visible to the same people as its debt (owner-only debt: owner-only fee) and
+  has the due date and month of its debt, so it sits right after it in the statement. The resident gets a bell message.
+- **Limits written down:** a run above 10 000 000 TL is refused (`amount_too_large`); the legal texts say 5 % a month (KMK md. 20): the page warns when the
+  rate is above 5 or the "started month" method is used, and the texts are drafts that a lawyer must check. The lock in `apply_late_fees` cannot be
+  proved from one session (two sessions at once), so it has no break test.
 
 ### Testing havale notices on the hosted demo
 
