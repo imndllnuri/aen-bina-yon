@@ -8,7 +8,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(71);
+select plan(74);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -27,15 +27,16 @@ create function tt.u(p text) returns uuid language sql as $$
   select case p
     when 'AA' then 'a1000000-0000-0000-0000-000000000001' when 'A2' then 'a3000000-0000-0000-0000-000000000003' when 'AB' then 'a2000000-0000-0000-0000-000000000002'
     when 'OA' then 'b1000000-0000-0000-0000-000000000001' when 'DD' then 'b5000000-0000-0000-0000-000000000005' when 'YR' then 'b9000000-0000-0000-0000-000000000009'
-    when 'S'  then 'c1000000-0000-0000-0000-000000000001' end::uuid
+    when 'AX' then 'a4000000-0000-0000-0000-000000000004' when 'S'  then 'c1000000-0000-0000-0000-000000000001' end::uuid
 $$;
 create function tt.siteX() returns uuid language sql as $$ select '20000000-0000-0000-0000-0000000000a1'::uuid $$;
 create function tt.siteY() returns uuid language sql as $$ select '20000000-0000-0000-0000-0000000000a2'::uuid $$;
+create function tt.siteX2() returns uuid language sql as $$ select '20000000-0000-0000-0000-0000000000a3'::uuid $$;
 -- the admins of a site, as text "AA,A2", WITHOUT row security
 create function tt.admins(p_site uuid) returns text language sql security definer set search_path = '' as $$
   select string_agg(case m.profile_id
       when 'a1000000-0000-0000-0000-000000000001' then 'AA' when 'a3000000-0000-0000-0000-000000000003' then 'A2' when 'a2000000-0000-0000-0000-000000000002' then 'AB'
-      when 'b1000000-0000-0000-0000-000000000001' then 'OA' when 'c1000000-0000-0000-0000-000000000001' then 'S' else m.profile_id::text end, ',' order by m.created_at, m.profile_id)
+      when 'b1000000-0000-0000-0000-000000000001' then 'OA' when 'a4000000-0000-0000-0000-000000000004' then 'AX' when 'c1000000-0000-0000-0000-000000000001' then 'S' else m.profile_id::text end, ',' order by m.created_at, m.profile_id)
     from public.site_members m where m.site_id = p_site and m.role = 'admin'
 $$;
 grant execute on function tt.admins(uuid) to authenticated;
@@ -53,14 +54,14 @@ end; $$;
 grant execute on function tt.audit_value(text, uuid, text, text) to authenticated;
 
 insert into public.companies (id, name) values ('10000000-0000-0000-0000-0000000000c1', 'Firma 1'), ('10000000-0000-0000-0000-0000000000c2', 'Firma 2');
-insert into public.sites (id, company_id, name) values (tt.siteX(), '10000000-0000-0000-0000-0000000000c1', 'Site X'), (tt.siteY(), '10000000-0000-0000-0000-0000000000c2', 'Site Y');
+insert into public.sites (id, company_id, name) values (tt.siteX(), '10000000-0000-0000-0000-0000000000c1', 'Site X'), (tt.siteY(), '10000000-0000-0000-0000-0000000000c2', 'Site Y'), (tt.siteX2(), '10000000-0000-0000-0000-0000000000c1', 'Site X2');
 insert into public.blocks (id, site_id, name) values ('30000000-0000-0000-0000-000000000001', tt.siteX(), 'Blok A'), ('30000000-0000-0000-0000-000000000002', tt.siteY(), 'Blok Y');
 insert into public.units (id, block_id, door_no) values ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '1'), ('40000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', '2'), ('40000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000002', '1');
 insert into auth.users (id, email, raw_user_meta_data) values
   (tt.u('AA'), 'aa@test.local', '{"full_name":"Ayşe Admin"}'), (tt.u('A2'), 'a2@test.local', '{"full_name":"Berk Admin"}'), (tt.u('AB'), 'ab@test.local', '{"full_name":"Can Admin"}'),
   (tt.u('OA'), 'oa@test.local', '{"full_name":"Mehmet Malik"}'), (tt.u('DD'), 'dd@test.local', '{"full_name":"Pasif Kişi"}'), (tt.u('YR'), 'yr@test.local', '{"full_name":"Yeni Sakin"}'),
-  (tt.u('S'), 's@test.local', '{"full_name":"Sıfırdan Gelen"}');
-insert into public.site_members (profile_id, site_id, role) values (tt.u('AA'), tt.siteX(), 'admin'), (tt.u('A2'), tt.siteX(), 'admin'), (tt.u('AB'), tt.siteY(), 'admin');
+  (tt.u('S'), 's@test.local', '{"full_name":"Sıfırdan Gelen"}'), (tt.u('AX'), 'ax@test.local', '{"full_name":"Deniz Admin"}');
+insert into public.site_members (profile_id, site_id, role) values (tt.u('AA'), tt.siteX(), 'admin'), (tt.u('A2'), tt.siteX(), 'admin'), (tt.u('AB'), tt.siteY(), 'admin'), (tt.u('AX'), tt.siteX2(), 'admin');
 insert into public.unit_residents (unit_id, profile_id, relation, start_date) values
   ('40000000-0000-0000-0000-000000000001', tt.u('OA'), 'owner', current_date - 30),
   ('40000000-0000-0000-0000-000000000002', tt.u('DD'), 'owner', current_date - 30),
@@ -129,6 +130,7 @@ reset role; select set_config('request.jwt.claims', '', true);
 select pg_temp.act_as(tt.u('AA'));
 select lives_ok($$select public.add_site_admin(tt.siteX(), tt.u('OA'))$$, 'an admin makes a resident of the site an admin');
 select lives_ok($$select public.add_site_admin(tt.siteX(), tt.u('S'))$$, '...and a brand-new account with no link anywhere');
+select lives_ok($$select public.add_site_admin(tt.siteX(), tt.u('AX'))$$, '...and an admin of ANOTHER site of the same company');
 select throws_ok($$select public.add_site_admin(tt.siteX(), tt.u('OA'))$$, 'P0001', 'already_member', 'the same person again is "already_member"');
 select throws_ok($$select public.add_site_admin(tt.siteX(), tt.u('AA'))$$, 'P0001', 'already_member', '...and so is the caller');
 select throws_ok($$select public.add_site_admin(tt.siteX(), tt.u('YR'))$$, 'P0001', 'person_not_found', 'a resident of ANOTHER company cannot be made admin');
@@ -139,7 +141,7 @@ select throws_ok($$select public.add_site_admin(tt.siteY(), tt.u('OA'))$$, '4250
 select throws_ok($$select public.add_site_admin(null, tt.u('OA'))$$, '42501', null, 'no site is refused');
 select throws_ok($$select public.add_site_admin(tt.siteX(), null)$$, '42501', null, 'no person is refused');
 reset role; select set_config('request.jwt.claims', '', true);
-select is(tt.admins(tt.siteX()), 'AA,A2,OA,S', 'the site now has four admins, newest last');
+select is(tt.admins(tt.siteX()), 'AA,A2,AX,OA,S', 'the site now has five admins');
 select is(tt.audits('site_members', 'insert', tt.u('OA'), tt.u('AA')), 1, 'the change is in the audit log and names the CALLER (not "nobody")');
 select is((select count(*)::integer from public.unit_residents where profile_id = tt.u('OA')), 1, 'the new admin is still a resident too');
 select is(tt.audit_value('insert', tt.u('OA'), 'new_data', 'person'), 'Mehmet Malik', 'the audit row of an added admin carries the NAME of the person');
@@ -147,7 +149,7 @@ select is(tt.audit_value('insert', tt.u('S'), 'new_data', 'role'), 'admin', '...
 select is((select count(*)::integer from public.audit_log where table_name <> 'site_members' and (new_data ? 'person' or old_data ? 'person')), 0, 'rows of other tables never get a "person"');
 
 select pg_temp.act_as(tt.u('OA'));
-select is((select count(*)::integer from public.list_site_admins(tt.siteX())), 4, 'the new admin can use the admin functions at once');
+select is((select count(*)::integer from public.list_site_admins(tt.siteX())), 5, 'the new admin can use the admin functions at once');
 reset role; select set_config('request.jwt.claims', '', true);
 select pg_temp.act_as(tt.u('YR'));
 select throws_ok($$select public.add_site_admin(tt.siteY(), tt.u('YR'))$$, '42501', null, 'a resident cannot make themselves admin through the function');
@@ -185,8 +187,10 @@ select throws_ok($$select public.remove_site_admin(tt.siteX(), '99999999-9999-99
 select throws_ok($$select public.remove_site_admin(tt.siteY(), tt.u('AB'))$$, '42501', null, 'an admin of site X cannot remove an admin of site Y');
 select lives_ok($$select public.remove_site_admin(tt.siteX(), tt.u('S'))$$, 'an admin removes another admin');
 select lives_ok($$select public.remove_site_admin(tt.siteX(), tt.u('OA'))$$, '...and another');
+select lives_ok($$select public.remove_site_admin(tt.siteX(), tt.u('AX'))$$, '...and a person who is admin of two sites');
 reset role; select set_config('request.jwt.claims', '', true);
 select is(tt.admins(tt.siteX()), 'AA,A2', 'two admins are left');
+select is(tt.admins(tt.siteX2()), 'AX', 'a removal touches only the site it names: the other site of that person is unchanged');
 select is(tt.audits('site_members', 'delete', tt.u('OA'), tt.u('AA')), 1, 'the removal is in the audit log and names the caller');
 select is(tt.audit_value('delete', tt.u('OA'), 'old_data', 'person'), 'Mehmet Malik', 'the audit row of a removed admin carries the NAME of the person (they are gone from the list)');
 select is((select count(*)::integer from public.profiles where id = tt.u('OA')) + (select count(*)::integer from public.unit_residents where profile_id = tt.u('OA')), 2, 'the removed person keeps their account and their residency');
