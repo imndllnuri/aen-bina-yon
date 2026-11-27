@@ -86,7 +86,7 @@ alone, but the generated local defaults would turn hosted MFA and e-mail protect
 ### Hosted project status
 
 - Project `aen-bina-yonetimi` (ref `dogcevoorjlgbmykaqdy`, region eu-west-2). Signups are **off**
-  (invite-only). Migrations `0001` to `0012` and the demo data are applied (the audit log starts empty on the day 0009 was applied), and the
+  (invite-only). Migrations `0001` to `0013` and the demo data are applied (the audit log starts empty on the day 0009 was applied), and the
   `invite-resident` function is deployed.
 - The first admin is made by hand: create a user in the dashboard (Authentication → Users → Add
   user), then run this in the SQL Editor (demo site id from `seed.sql`):
