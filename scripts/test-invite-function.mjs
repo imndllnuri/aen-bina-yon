@@ -232,10 +232,13 @@ try {
   const aInactiveTarget = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: users.inactiveAdmin.id })
   check('54 a link for a deactivated admin -> 403', aInactiveTarget.status === 403)
 
+  const aOtherSiteAdmin = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: users.adminB.id })
+  check('55 a link for an admin of ANOTHER company (who has not finished onboarding) -> 403', aOtherSiteAdmin.status === 403, JSON.stringify(aOtherSiteAdmin.json))
+
   console.log('--- hygiene ---')
   const logs = execSync(`docker logs --since ${startedAt} supabase_edge_runtime_aen-bina-yon 2>&1 || true`).toString()
   const leakedInLogs = /access_token|refresh_token|verify\?token|action_link|token_hash/i.test(logs)
-  check('55 no link or token appears in the function logs', !leakedInLogs, leakedInLogs ? logs.split('\n').filter((l) => /token|action_link/i.test(l)).slice(0, 2).join(' | ') : '')
+  check('56 no link or token appears in the function logs', !leakedInLogs, leakedInLogs ? logs.split('\n').filter((l) => /token|action_link/i.test(l)).slice(0, 2).join(' | ') : '')
 } finally {
   // ---- cleanup (never leave test data behind) ----
   try {

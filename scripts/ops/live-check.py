@@ -36,6 +36,7 @@ check('the slice 9 pages are in the live bundle', all(x in text for x in ['Yeni 
 check('the slice 10 pages are in the live bundle (Tabloyu göster, İşlem Geçmişi, Hazirun cetveli, Yazdır / PDF, Excel’e aktar, Borç türleri, Hatırlatma Gönder)', all(x in text for x in ['Tabloyu göster', 'İşlem Geçmişi', 'Hazirun cetveli', 'Yazdır / PDF', 'Excel’e aktar', 'Borç türleri', 'Hatırlatma Gönder']))
 check('the slice 11 page is in the live bundle (Profilim, E-posta bildirimleri, Şifreyi değiştir, Diğer cihazlardaki oturumları kapat)', all(x in text for x in ['Profilim', 'E-posta bildirimleri', 'Şifreyi değiştir', 'Diğer cihazlardaki oturumları kapat']))
 check('the slice 12 pages are in the live bundle (Bize yazın, Haritada aç, Çerez Politikası, Mesafeli Satış Sözleşmesi, Sıkça Sorulan Sorular, Neler dahil?)', all(x in text for x in ['Bize yazın', 'Haritada aç', 'Çerez Politikası', 'Mesafeli Satış Sözleşmesi', 'Sıkça Sorulan Sorular', 'Neler dahil?', 'İletişim Mesajları']))
+check('the slice 13 page is in the live bundle (Yönetici davet et, Yöneticiliği kaldır, Davet bekliyor)', all(x in text for x in ['Yönetici davet et', 'Yöneticiliği kaldır', 'Davet bekliyor']))
 check('NO secret key in the live bundle', not re.search(r'sb_secret_[A-Za-z0-9_-]{16,}', text))
 check('no service_role key in the live bundle', 'service_role' not in text)
 
@@ -124,6 +125,18 @@ st, b, _ = get(f'{API}/rest/v1/contact_messages?id=eq.{UUID}', H, 'PATCH', json.
 check(f'a visitor cannot change a message (HTTP {st})', st in (401, 403), b[:120])
 st, b, _ = get(f'{API}/rest/v1/contact_messages?id=not.is.null', H, 'DELETE')
 check(f'a visitor cannot delete messages (HTTP {st})', st in (401, 403), b[:120])
+
+print('9. SLICE 13: A VISITOR CANNOT TOUCH THE ADMINS')
+rpc_group('   (functions)', {
+  'list_site_admins': {'p_site': UUID},
+  'add_site_admin': {'p_site': UUID, 'p_profile': UUID},
+  'remove_site_admin': {'p_site': UUID, 'p_profile': UUID}})
+for method, path, body in [('POST', 'site_members', {'profile_id': UUID, 'site_id': UUID, 'role': 'admin'}), ('DELETE', 'site_members?profile_id=not.is.null', None), ('PATCH', 'site_members?profile_id=not.is.null', {'role': 'staff'})]:
+    st, b, _ = get(f'{API}/rest/v1/{path}', H, method, json.dumps(body).encode() if body else None)
+    check(f'a visitor cannot {method} site_members (HTTP {st})', st in (401, 403), b[:120])
+# the invite function wants a logged-in admin: with only the public key it must say 401 and create nothing
+st, b, _ = get(f'{API}/functions/v1/invite-resident', {**H, 'origin': 'https://imndllnuri.github.io'}, 'POST', json.dumps({'action': 'invite-admin', 'email': 'nobody@example.invalid', 'fullName': 'Test Kişi', 'siteId': UUID}).encode())
+check(f'the invite function refuses a call without a login (HTTP {st})', st in (401, 403), b[:120])
 
 print(f'\nRESULT: {ok} passed, {fail} failed')
 sys.exit(1 if fail else 0)

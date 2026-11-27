@@ -9,6 +9,9 @@ describe('adminInviteMessage (the answers of the invite function)', () => {
     for (const m of messages) expect(m).not.toMatch(/_/)
     expect(Object.keys(adminInviteMessages)).toContain('failed')
   })
+  it('says that another company\'s account cannot be used', () => {
+    expect(adminInviteMessage('email_in_use_elsewhere')).toMatch(/başka bir firmanın hesabında kullanılıyor/)
+  })
   it('says "already an admin" for already_linked (not "already in this unit")', () => {
     expect(adminInviteMessage('already_linked')).toBe('Bu kişi zaten bu sitenin yöneticisi.')
   })

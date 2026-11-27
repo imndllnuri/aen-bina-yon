@@ -48,6 +48,7 @@ use the **local** database unless you add `--remote`.
 | `supabase/migrations/0009_admin_tools.sql` | the audit log (`audit_log`, one trigger on twelve tables), dashboard and report functions, charge-type and settings functions, quote-request status (see "Dashboard, reports, settings and audit log" below) |
 | `supabase/migrations/0010_profile.sql` | the Profil page: a shape check on `profiles.notify_prefs` and `save_my_notification_prefs()` (only the person changes their own e-mail choices; see "Profil page" below) |
 | `supabase/migrations/0011_contact_messages.sql` | the public contact form: `contact_messages` (visitors insert four columns only; admins read, answer and delete; see "Public pages" below) |
+| `supabase/migrations/0012_admins.sql` | managing admins: `site_members` can no longer be written from the browser; `list_site_admins`, `add_site_admin`, `remove_site_admin`; the audit log names the person of an admin change (see "Yöneticiler" below) |
 | `supabase/functions/invite-resident/` | Edge Function: an admin invites a resident and gets a one-time link (see below) |
 | `supabase/seed.sql` | Demo site: 2 blocks, 16 units (local `db reset` only) |
 | `supabase/tests/database/` | pgTAP tests: who can see and change what (RLS) |
@@ -397,6 +398,33 @@ header (the resident bottom bar has no room for it).
   map service until a person clicks.
 - **Not built (named on purpose):** captcha or rate limit for the public forms, e-mail to the management when a message arrives (comes with the
   e-mail slice), replying from inside the portal.
+
+### Yöneticiler: managing the admins (slice 13)
+
+Page: **Yöneticiler** (`/#/yonetim/yoneticiler`, menu group Kişiler). It lists the admins of the selected site (name, e-mail, phone, since when,
+and a status: **Etkin**, **Davet bekliyor** = invited but the invite page is not finished, or **Hesap devre dışı**). You can invite a new admin,
+get a fresh link for a pending one, or take the admin role away.
+
+- **A security gap was closed:** since slice 1 any admin could add, change or delete any `site_members` row through the API, including their
+  own and the last admin's. Migration 0012 takes those rights away. Three checked functions replace them: `list_site_admins`,
+  `add_site_admin`, `remove_site_admin`.
+- **The rules are in the database, not in the screen:**
+  - only an **active admin of that site** can call them;
+  - you **cannot remove yourself**. Only an active admin can call the function, so at least one admin always stays;
+  - a person can become admin only if they already belong to **this company** (a resident or a member of one of its sites) or are a brand-new
+    account with no link anywhere (what the invite creates). Every other case gets the same answer, so nobody can probe which accounts exist;
+  - a deactivated person cannot become admin; the site row is locked while a change runs (two admins cannot remove each other at once).
+- **Inviting** goes through the Edge Function `invite-resident` (new actions `invite-admin` and `admin-link`). It creates the account with the
+  secret key, then calls `add_site_admin` **with the caller's own token**, so the audit log names the admin who invited, not "nobody". The new
+  admin gets a one-time link, like a resident (copy it or send it by WhatsApp: there is no e-mail yet). A link is given only for an admin of that
+  site who has not finished the invite page; an admin who already finished resets the password by e-mail.
+  **Deploy the function after changing it:** `npx supabase functions deploy invite-resident`.
+- **Audit log:** an admin change is logged with the caller's name **and the name of the person** who was added or removed (a small trigger on
+  `audit_log` writes `person` into those rows), for example "Yönetici Bir · Silindi · Yönetici: Berk Admin".
+- **Fixing things by hand:** the SQL Editor (the `postgres` role) can still change `site_members` directly, for example to rescue a site that
+  has lost its admin. The rules above apply to people who are logged in to the portal.
+- **Not built (named on purpose):** roles other than admin (Görevli, Denetçi: Faz 2), switching off a person's whole account from this page
+  (do it in Sakinler for residents), changing an admin's e-mail.
 
 ### Testing havale notices on the hosted demo
 
