@@ -21,7 +21,7 @@ export function Services() {
               <CardTitle className="mt-2 text-base">{service.title}</CardTitle>
               <CardDescription>{service.text}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <ul className="space-y-2 text-sm">
                 {service.points.map((point) => (
                   <li key={point} className="flex items-start gap-2">
@@ -30,6 +30,9 @@ export function Services() {
                   </li>
                 ))}
               </ul>
+              <Link to={`/hizmetler/${service.slug}`} className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline" aria-label={`${service.title}: ayrıntılar`}>
+                Ayrıntılar →
+              </Link>
             </CardContent>
           </Card>
         ))}

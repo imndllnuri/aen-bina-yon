@@ -4,8 +4,10 @@ import { createMemoryRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { describe, expect, it } from 'vitest'
 import { AdminLayout } from '@/app/layouts/AdminLayout'
+import { PublicLayout } from '@/app/layouts/PublicLayout'
 import { ResidentLayout } from '@/app/layouts/ResidentLayout'
 import { AppProviders } from '@/app/providers'
+import { site } from '@/config/site'
 
 // The panels sit behind the login guard, so we mount the layouts directly here
 // (a real login needs a Supabase project). This checks menus and structure only.
@@ -20,6 +22,42 @@ function mountLayout(layout: ReactElement, path: string) {
     </AppProviders>,
   )
 }
+
+describe('PublicLayout', () => {
+  it('has the legal links in the footer: SSS, KVKK, Çerez, Mesafeli Satış, KMK', () => {
+    mountLayout(<PublicLayout />, '/')
+    const nav = screen.getByRole('navigation', { name: 'Yasal' })
+    expect(within(nav).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+      ['SSS', '/sss'],
+      ['KVKK Aydınlatma Metni', '/kvkk'],
+      ['Çerez Politikası', '/cerez-politikasi'],
+      ['Mesafeli Satış Sözleşmesi', '/mesafeli-satis'],
+      ['KMK Bilgi', '/kat-mulkiyeti-kanunu'],
+    ])
+  })
+  it('has a floating WhatsApp button that opens the company number in a new tab, and hides it on paper', () => {
+    mountLayout(<PublicLayout />, '/')
+    const button = screen.getByRole('link', { name: 'WhatsApp ile yazın' })
+    expect(button).toHaveAttribute('href', `https://wa.me/${site.whatsapp}`)
+    expect(button).toHaveAttribute('target', '_blank')
+    expect(button.getAttribute('rel')).toContain('noopener')
+    expect(button.className).toContain('fixed')
+    expect(button.className).toContain('print:hidden')
+  })
+  it('shows no WhatsApp button inside the resident and admin panels', () => {
+    mountLayout(<AdminLayout />, '/yonetim')
+    expect(screen.queryByRole('link', { name: 'WhatsApp ile yazın' })).not.toBeInTheDocument()
+  })
+  it('shows no WhatsApp button in the resident panel either', () => {
+    mountLayout(<ResidentLayout />, '/panel')
+    expect(screen.queryByRole('link', { name: 'WhatsApp ile yazın' })).not.toBeInTheDocument()
+  })
+  it('keeps the footer links clear of the round button (extra space at the bottom)', () => {
+    mountLayout(<PublicLayout />, '/')
+    const nav = screen.getByRole('navigation', { name: 'Yasal' })
+    expect(nav.parentElement?.className).toContain('pb-20')
+  })
+})
 
 describe('AdminLayout', () => {
   it('shows the plan’s sidebar groups and a sign-out button', () => {
@@ -37,6 +75,12 @@ describe('AdminLayout', () => {
     expect(within(sidebar).getByRole('link', { name: 'Teklif Talepleri' })).toHaveAttribute('href', '/yonetim/teklif-talepleri')
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument()
     expect(screen.getByText('sayfa içeriği')).toBeInTheDocument()
+  })
+
+  it('has "İletişim Mesajları" in the İletişim group', () => {
+    mountLayout(<AdminLayout />, '/yonetim/daireler')
+    const menu = screen.getAllByRole('navigation', { name: 'Ana menü' })[0] as HTMLElement
+    expect(within(menu).getByRole('link', { name: 'İletişim Mesajları' })).toHaveAttribute('href', '/yonetim/mesajlar')
   })
 
   it('hides the menu and the header on paper (reports are printed from here)', () => {

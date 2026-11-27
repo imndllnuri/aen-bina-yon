@@ -5,6 +5,8 @@ import { IconCircle } from '@/components/IconCircle'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { site } from '@/config/site'
+import { mapsUrl } from '@/lib/maps'
+import { ContactForm } from './ContactForm'
 
 function ContactRow({ icon, title, children }: { icon: typeof Phone; title: string; children: ReactNode }) {
   return (
@@ -26,7 +28,7 @@ export function Contact() {
     <section className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
       <h1 className="text-2xl font-bold sm:text-3xl">İletişim</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground">
-        Sorularınız için bize telefonla, WhatsApp ile ya da e-posta ile ulaşabilirsiniz.
+        Sorularınız için bize telefonla, WhatsApp ile, e-posta ile ya da aşağıdaki formla ulaşabilirsiniz.
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -55,9 +57,21 @@ export function Contact() {
         </ContactRow>
         <div className="sm:col-span-2">
           <ContactRow icon={MapPin} title="Adres">
-            {site.address}
+            <p>{site.address}</p>
+            <a
+              href={mapsUrl(site.address)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-block font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Haritada aç
+            </a>
           </ContactRow>
         </div>
+      </div>
+
+      <div className="mt-10 max-w-2xl">
+        <ContactForm />
       </div>
 
       <div className="mt-10">

@@ -18,6 +18,21 @@ const PHONE_CHARS = /^\+?[0-9\s()-]+$/
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const digitCount = (value: string) => value.replace(/\D/g, '').length
 
+/** An empty text, or a phone number of 10 to 13 digits (the public forms share this rule). */
+export const phoneField = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value === '' || (PHONE_CHARS.test(value) && value.length <= 30 && digitCount(value) >= 10 && digitCount(value) <= 13),
+    'Geçerli bir telefon numarası yazın. Örnek: 0532 000 00 00',
+  )
+
+/** An empty text, or an e-mail address of at most 200 characters. */
+export const emailField = z
+  .string()
+  .trim()
+  .refine((value) => value === '' || (EMAIL.test(value) && value.length <= 200), 'Geçerli bir e-posta adresi yazın.')
+
 export const quoteSchema = z
   .object({
     name: z
@@ -25,19 +40,8 @@ export const quoteSchema = z
       .trim()
       .min(2, 'Lütfen adınızı ve soyadınızı yazın.')
       .max(120, 'En fazla 120 karakter yazabilirsiniz.'),
-    phone: z
-      .string()
-      .trim()
-      .refine(
-        (value) =>
-          value === '' ||
-          (PHONE_CHARS.test(value) && value.length <= 30 && digitCount(value) >= 10 && digitCount(value) <= 13),
-        'Geçerli bir telefon numarası yazın. Örnek: 0532 000 00 00',
-      ),
-    email: z
-      .string()
-      .trim()
-      .refine((value) => value === '' || (EMAIL.test(value) && value.length <= 200), 'Geçerli bir e-posta adresi yazın.'),
+    phone: phoneField,
+    email: emailField,
     buildingType: z.string().refine((value) => BUILDING_VALUES.includes(value), 'Lütfen yapı tipini seçin.'),
     unitCount: z
       .string()

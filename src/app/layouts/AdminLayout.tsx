@@ -6,6 +6,7 @@ import {
   House,
   Landmark,
   LogOut,
+  Mail,
   Megaphone,
   History,
   Menu,
@@ -42,7 +43,13 @@ const groups: NavGroup[] = [
       { to: '/yonetim/raporlar', label: 'Raporlar', icon: ChartColumn },
     ],
   },
-  { title: 'İletişim', items: [{ to: '/yonetim/duyurular', label: 'Duyurular', icon: Megaphone }] },
+  {
+    title: 'İletişim',
+    items: [
+      { to: '/yonetim/duyurular', label: 'Duyurular', icon: Megaphone },
+      { to: '/yonetim/mesajlar', label: 'İletişim Mesajları', icon: Mail },
+    ],
+  },
   { title: 'Operasyon', items: [{ to: '/yonetim/talepler', label: 'Talepler', icon: Wrench }] },
   {
     title: 'Sistem',

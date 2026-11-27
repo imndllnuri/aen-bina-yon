@@ -8,6 +8,7 @@ import { SetPassword } from '@/features/auth/SetPassword'
 import { AdminAnnouncementsPage } from '@/features/admin/AnnouncementsPage'
 import { AdminDashboardPage } from '@/features/admin/DashboardPage'
 import { AuditPage } from '@/features/admin/AuditPage'
+import { ContactMessagesPage } from '@/features/admin/ContactMessagesPage'
 import { QuoteRequestsPage } from '@/features/admin/QuoteRequestsPage'
 import { ReportsPage } from '@/features/admin/ReportsPage'
 import { SettingsPage } from '@/features/admin/SettingsPage'
@@ -36,6 +37,11 @@ import { ProfilePage } from '@/features/profile/ProfilePage'
 import { Home } from '@/features/public/Home'
 import { Kvkk } from '@/features/public/Kvkk'
 import { Quote } from '@/features/public/Quote'
+import { Cookies } from '@/features/public/legal/Cookies'
+import { DistanceSales } from '@/features/public/legal/DistanceSales'
+import { Faq } from '@/features/public/legal/Faq'
+import { Kmk } from '@/features/public/legal/Kmk'
+import { ServiceDetail } from '@/features/public/ServiceDetail'
 import { Services } from '@/features/public/Services'
 import { RequireRole } from '@/lib/auth-guard'
 
@@ -50,9 +56,14 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/', element: <Home /> },
       { path: '/hizmetler', element: <Services /> },
+      { path: '/hizmetler/:slug', element: <ServiceDetail /> },
       { path: '/teklif-al', element: <Quote /> },
       { path: '/iletisim', element: <Contact /> },
       { path: '/kvkk', element: <Kvkk /> },
+      { path: '/sss', element: <Faq /> },
+      { path: '/cerez-politikasi', element: <Cookies /> },
+      { path: '/mesafeli-satis', element: <DistanceSales /> },
+      { path: '/kat-mulkiyeti-kanunu', element: <Kmk /> },
       { path: '/giris', element: <Login /> },
       { path: '/sifremi-unuttum', element: <ForgotPassword /> },
       { path: '/sifre-yenile', element: <SetPassword mode="recovery" /> },
@@ -100,6 +111,7 @@ export const routes: RouteObject[] = [
       { path: 'talepler', element: <AdminRequestsPage /> },
       { path: 'talepler/:id', element: <AdminRequestDetailPage /> },
       { path: 'teklif-talepleri', element: <QuoteRequestsPage /> },
+      { path: 'mesajlar', element: <ContactMessagesPage /> },
       { path: 'raporlar', element: <ReportsPage /> },
       { path: 'islem-gecmisi', element: <AuditPage /> },
       { path: 'ayarlar', element: <SettingsPage /> },

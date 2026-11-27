@@ -2,6 +2,7 @@ import { Clock, Mail, MapPin, Menu, Phone } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import { BrandLogo } from '@/components/BrandLogo'
+import { WhatsAppButton } from '@/components/WhatsAppButton'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -105,6 +106,8 @@ export function PublicLayout() {
         <Outlet />
       </main>
 
+      <WhatsAppButton />
+
       <footer className="border-t bg-card">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-3">
@@ -137,14 +140,27 @@ export function PublicLayout() {
           </div>
         </div>
         <div className="border-t">
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          {/* pb-20: keep the links clear of the round WhatsApp button */}
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pt-4 pb-20 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <p>
               © {new Date().getFullYear()} {site.name}. Tüm hakları saklıdır.
               {site.demo && ' Bu site deneme (demo) sürümüdür; gerçek kişisel veri girmeyin.'}
             </p>
-            <nav aria-label="Yasal">
+            <nav aria-label="Yasal" className="flex flex-wrap gap-x-4 gap-y-1">
+              <Link to="/sss" className="hover:text-foreground hover:underline">
+                SSS
+              </Link>
               <Link to="/kvkk" className="hover:text-foreground hover:underline">
                 KVKK Aydınlatma Metni
+              </Link>
+              <Link to="/cerez-politikasi" className="hover:text-foreground hover:underline">
+                Çerez Politikası
+              </Link>
+              <Link to="/mesafeli-satis" className="hover:text-foreground hover:underline">
+                Mesafeli Satış Sözleşmesi
+              </Link>
+              <Link to="/kat-mulkiyeti-kanunu" className="hover:text-foreground hover:underline">
+                KMK Bilgi
               </Link>
             </nav>
           </div>

@@ -263,6 +263,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"contact_messages": {
+                  Row: {
+                    "admin_note": string | null,"created_at": string,"email": string | null,"id": string,"message": string,"name": string,"phone": string | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "admin_note"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"message": string,"name": string,"phone"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "admin_note"?: string | null,"created_at"?: string,"email"?: string | null,"id"?: string,"message"?: string,"name"?: string,"phone"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"notifications": {
                   Row: {
                     "body": string | null,"created_at": string,"event_key": string,"id": string,"kind": string,"link": string | null,"profile_id": string,"read_at": string | null,"title": string,"visible_at": string

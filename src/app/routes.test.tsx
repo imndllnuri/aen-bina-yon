@@ -51,9 +51,19 @@ describe('routes', () => {
     ['/hizmetler', 'Hizmetlerimiz'],
     ['/teklif-al', 'Teklif Al'],
     ['/kvkk', 'KVKK Aydınlatma Metni'],
+    ['/sss', 'Sıkça Sorulan Sorular'],
+    ['/cerez-politikasi', 'Çerez Politikası'],
+    ['/mesafeli-satis', 'Mesafeli Satış Sözleşmesi'],
+    ['/kat-mulkiyeti-kanunu', 'Kat Mülkiyeti Kanunu (KMK) hakkında kısa bilgi'],
+    ['/hizmetler/aidat-ve-tahsilat', 'Aidat ve Tahsilat'],
   ])('renders the public page %s', (path, heading) => {
     renderAt(path)
     expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
+  })
+
+  it('shows the 404 page for a service address that does not exist', () => {
+    renderAt('/hizmetler/yok-boyle-bir-hizmet')
+    expect(screen.getByRole('heading', { name: 'Sayfa bulunamadı' })).toBeInTheDocument()
   })
 
   it('sends a logged-out visitor from the admin panel to the login page', async () => {
@@ -98,7 +108,7 @@ describe('routes', () => {
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument() // inside the panel layout
   })
 
-  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc', '/profil', '/yonetim/profil'])('sends a logged-out visitor from %s to the login page', async (path) => {
+  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc', '/profil', '/yonetim/profil', '/yonetim/mesajlar'])('sends a logged-out visitor from %s to the login page', async (path) => {
     const router = renderAt(path)
     expect(await screen.findByRole('heading', { level: 1, name: 'Giriş yap' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/giris')
