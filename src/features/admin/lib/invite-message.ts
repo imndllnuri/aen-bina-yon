@@ -14,10 +14,11 @@ export function toWhatsAppNumber(phone: string | null | undefined): string | nul
 }
 
 /** The message the admin sends. The link works once and only for this person. */
-export function inviteMessage(options: { name: string; link: string; firmName: string }): string {
+export function inviteMessage(options: { name: string; link: string; firmName: string; admin?: boolean }): string {
   const firstName = options.name.trim().split(/\s+/)[0] || 'Merhaba'
+  const invited = options.admin ? 'bina yönetimi portalına yönetici olarak davet edildiniz' : 'bina yönetimi portalına davet edildiniz'
   return (
-    `Merhaba ${firstName}, ${options.firmName} bina yönetimi portalına davet edildiniz. ` +
+    `Merhaba ${firstName}, ${options.firmName} ${invited}. ` +
     `Hesabınızı etkinleştirmek ve şifrenizi belirlemek için bu bağlantıya tıklayın: ${options.link}\n\n` +
     `Bağlantı yalnızca bir kez kullanılabilir ve sadece size özeldir. Başkasıyla paylaşmayın.`
   )

@@ -739,6 +739,9 @@ isOneToOne: false
 "add_request_comment":
 { Args: { "p_body": string,"p_internal": boolean,"p_request": string }; Returns: string
                            },
+"add_site_admin":
+{ Args: { "p_profile": string,"p_site": string }; Returns: undefined
+                           },
 "announcement_report":
 { Args: { "p_id": string }; Returns: {
               "full_name": string,"profile_id": string,"read_at": string,"relations": string,"units": string
@@ -794,6 +797,11 @@ isOneToOne: false
               "body": string,"created_at": string,"expire_at": string,"id": string,"last_resent_at": string,"pinned": boolean,"publish_at": string,"published_at": string,"read_count": number,"recipient_count": number,"resend_count": number,"status": string,"title": string,"type": string,"updated_at": string
             }[]
                            },
+"list_site_admins":
+{ Args: { "p_site": string }; Returns: {
+              "email": string,"full_name": string,"is_active": boolean,"is_self": boolean,"kvkk_consent_at": string,"phone": string,"profile_id": string,"since": string
+            }[]
+                           },
 "mark_announcement_read":
 { Args: { "p_announcement": string }; Returns: undefined
                            },
@@ -831,6 +839,9 @@ isOneToOne: false
                            },
 "reject_transfer_notice":
 { Args: { "p_notice": string,"p_reason": string }; Returns: undefined
+                           },
+"remove_site_admin":
+{ Args: { "p_profile": string,"p_site": string }; Returns: undefined
                            },
 "report_attendance":
 { Args: { "p_site": string }; Returns: {

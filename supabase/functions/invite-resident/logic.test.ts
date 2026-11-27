@@ -101,7 +101,8 @@ describe('parseRequest: invite-admin', () => {
   })
   it('treats the phone as optional', () => {
     expect(parseRequest({ ...valid, phone: '' })).toMatchObject({ ok: true, value: { phone: null } })
-    const { phone: _phone, ...withoutPhone } = valid
+    const withoutPhone: Record<string, unknown> = { ...valid }
+    delete withoutPhone.phone
     expect(parseRequest(withoutPhone)).toMatchObject({ ok: true, value: { phone: null } })
   })
   it('rejects a bad e-mail, a short or long name, a bad phone and a missing or malformed site id', () => {

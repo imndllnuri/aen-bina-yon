@@ -11,6 +11,7 @@ import {
   History,
   Menu,
   Settings,
+  ShieldCheck,
   User,
   Users,
   Wallet,
@@ -33,7 +34,13 @@ import { useSignOut } from '@/lib/auth'
 const groups: NavGroup[] = [
   { items: [{ to: '/yonetim', label: 'Genel Bakış', icon: House, end: true }] },
   { title: 'Yapı', items: [{ to: '/yonetim/daireler', label: 'Daireler', icon: Building2 }] },
-  { title: 'Kişiler', items: [{ to: '/yonetim/sakinler', label: 'Sakinler', icon: Users }] },
+  {
+    title: 'Kişiler',
+    items: [
+      { to: '/yonetim/sakinler', label: 'Sakinler', icon: Users },
+      { to: '/yonetim/yoneticiler', label: 'Yöneticiler', icon: ShieldCheck },
+    ],
+  },
   {
     title: 'Finans',
     items: [

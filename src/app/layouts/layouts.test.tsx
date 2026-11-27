@@ -77,6 +77,13 @@ describe('AdminLayout', () => {
     expect(screen.getByText('sayfa içeriği')).toBeInTheDocument()
   })
 
+  it('has "Yöneticiler" in the Kişiler group, next to Sakinler', () => {
+    mountLayout(<AdminLayout />, '/yonetim/daireler')
+    const menu = screen.getAllByRole('navigation', { name: 'Ana menü' })[0] as HTMLElement
+    expect(within(menu).getByRole('link', { name: 'Yöneticiler' })).toHaveAttribute('href', '/yonetim/yoneticiler')
+    expect(within(menu).getByRole('link', { name: 'Sakinler' })).toHaveAttribute('href', '/yonetim/sakinler')
+  })
+
   it('has "İletişim Mesajları" in the İletişim group', () => {
     mountLayout(<AdminLayout />, '/yonetim/daireler')
     const menu = screen.getAllByRole('navigation', { name: 'Ana menü' })[0] as HTMLElement

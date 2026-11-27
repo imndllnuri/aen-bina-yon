@@ -103,13 +103,14 @@ describe('routes', () => {
     ['/profil', 'resident', 'Profilim'],
     ['/yonetim/profil', 'admin', 'Profilim'],
     ['/yonetim/mesajlar', 'admin', 'İletişim Mesajları'],
+    ['/yonetim/yoneticiler', 'admin', 'Yöneticiler'],
   ] as const)('opens the real page at %s for a signed-in %s (the panel menu and the page title are there)', async (path, role, title) => {
     renderSignedIn(path, role)
     expect(await screen.findByRole('heading', { level: 1, name: title })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Çıkış/ })).toBeInTheDocument() // inside the panel layout
   })
 
-  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc', '/profil', '/yonetim/profil', '/yonetim/mesajlar'])('sends a logged-out visitor from %s to the login page', async (path) => {
+  it.each(['/taleplerim/yeni', '/taleplerim/abc', '/yonetim/talepler/abc', '/profil', '/yonetim/profil', '/yonetim/mesajlar', '/yonetim/yoneticiler'])('sends a logged-out visitor from %s to the login page', async (path) => {
     const router = renderAt(path)
     expect(await screen.findByRole('heading', { level: 1, name: 'Giriş yap' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/giris')

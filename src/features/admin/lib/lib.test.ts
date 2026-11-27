@@ -108,6 +108,13 @@ describe('WhatsApp helpers', () => {
     expect(message).toMatch(/yalnızca bir kez/)
   })
 
+  it('says "as an admin" when the person is invited as an admin, and not otherwise', () => {
+    const asAdmin = inviteMessage({ name: 'Berk Admin', link: 'https://x.test/l', firmName: '[FİRMA]', admin: true })
+    expect(asAdmin).toContain('yönetici olarak davet edildiniz')
+    expect(inviteMessage({ name: 'Berk Admin', link: 'https://x.test/l', firmName: '[FİRMA]' })).not.toContain('yönetici olarak')
+    expect(asAdmin).toMatch(/yalnızca bir kez/)
+  })
+
   it('opens a chat with the person, or lets the admin pick a contact when there is no phone', () => {
     const message = 'Merhaba & hoş geldiniz'
     expect(whatsappUrl({ phone: '0532 123 45 67', message })).toBe(`https://wa.me/905321234567?text=${encodeURIComponent(message)}`)

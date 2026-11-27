@@ -259,6 +259,11 @@ async function callInviteFunction(body: Record<string, unknown>): Promise<Invite
 export const inviteResident = (input: InviteInput) => callInviteFunction({ action: 'invite', ...input })
 export const requestSignInLink = (profileId: string) => callInviteFunction({ action: 'link', profileId })
 
+/** Invite a person to be an ADMIN of a site (a new account, or someone the company already knows). */
+export const inviteAdmin = (input: { siteId: string; email: string; fullName: string; phone: string }) => callInviteFunction({ action: 'invite-admin', ...input })
+/** A fresh sign-in link for an admin of the site who has not finished the invite page yet. */
+export const requestAdminLink = (siteId: string, profileId: string) => callInviteFunction({ action: 'admin-link', siteId, profileId })
+
 /** Turkish messages for the codes the function can answer with. */
 export const inviteErrorMessages: Record<string, string> = {
   forbidden: 'Bu işlem için yetkiniz yok.',

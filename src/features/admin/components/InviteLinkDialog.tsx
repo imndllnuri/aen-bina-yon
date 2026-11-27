@@ -17,15 +17,18 @@ export function InviteLinkDialog({
   link,
   name,
   phone,
+  admin = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   link: string
   name: string
   phone: string | null
+  /** The person is invited as an admin (the texts say so). */
+  admin?: boolean
 }) {
   const [copied, setCopied] = useState(false)
-  const message = inviteMessage({ name, link, firmName: site.shortName })
+  const message = inviteMessage({ name, link, firmName: site.shortName, admin })
 
   const copy = async () => {
     try {
@@ -49,7 +52,7 @@ export function InviteLinkDialog({
         <DialogHeader>
           <DialogTitle>Davet bağlantısı hazır</DialogTitle>
           <DialogDescription>
-            <strong>{name}</strong> için tek kullanımlık bir giriş bağlantısı oluşturuldu. Bağlantıyı kişiye WhatsApp ya da başka bir
+            <strong>{name}</strong> için tek kullanımlık bir giriş bağlantısı oluşturuldu{admin ? ' (yönetici olarak)' : ''}. Bağlantıyı kişiye WhatsApp ya da başka bir
             yolla gönderin.
           </DialogDescription>
         </DialogHeader>
