@@ -15,7 +15,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(154);
+select plan(170);
 
 create function pg_temp.act_as(p_uid uuid) returns void language plpgsql as $$
 begin
@@ -191,6 +191,7 @@ select is(private.late_fee_amount(1000, tt.today() - 61, 0, 5, 'monthly', tt.tod
 select is(private.late_fee_amount(1000, tt.today() - 61, 0, 5, 'monthly', tt.today(), array[tt.today() - 30], array[400.00]), 130.00, 'monthly: 400 paid on D+31 helps only block 3 (1000 + 1000 + 600) x 5 %');
 select is(private.late_fee_amount(1000, tt.today() - 61, 0, 5, 'monthly', tt.today(), array[tt.today() - 31], array[400.00]), 110.00, 'monthly: 400 paid on D+30 helps blocks 2 and 3');
 select is(private.late_fee_amount(1000, tt.today() - 61, 0, 5, 'monthly', tt.today(), array[tt.today() - 61], array[400.00]), 90.00, 'monthly: 400 paid on the due date helps every block');
+select is(private.late_fee_amount(1000, tt.today() - 30, 0, 5, 'daily', tt.today(), array[tt.today() - 20], array[1600.00]), 0.00, 'payments above the debt never give a negative fee');
 -- bad input
 select throws_ok($$select private.late_fee_amount(1000, tt.today() - 3, 0, 5, 'weekly', tt.today(), '{}', '{}')$$, 'P0001', 'late_fee_method_invalid', 'an unknown method is refused');
 select throws_ok($$select private.late_fee_amount(null, tt.today() - 3, 0, 5, 'daily', tt.today(), '{}', '{}')$$, 'P0001', 'invalid_request', 'a missing number is refused');
@@ -295,6 +296,7 @@ reset role;
 select is((select count(*)::integer from public.charge_batches where split_method = 'late_fee'), 1, 'one batch of the kind late_fee');
 select is((select total from public.charge_batches where split_method = 'late_fee'), 75.00, '...its total is 75.00');
 select is((select unit_count from public.charge_batches where split_method = 'late_fee'), 2, '...unit_count is the number of lines');
+select is((select tenant_visible from public.charge_batches where request_id = tt.rq(1)), true, '...tenant_visible is true when every line is shown to tenants');
 select ok((select b.due_date = tt.today() and b.site_id = tt.sx() and b.request_id = tt.rq(1) and b.created_by = tt.u('AD') and b.charge_type_id = tt.ty('gecikme_tazminati')
                   and b.description like 'Gecikme tazminatı hesabı · %' from public.charge_batches b where b.split_method = 'late_fee'),
   '...with today as its day, this site, the request id, the admin and the right type');
@@ -322,6 +324,7 @@ select is(tt.pv_n(), 2, 'now only L6 and L7 are left');
 select is(tt.pv_sum(), 4000::bigint, '...13.33 + 26.67 = 40.00');
 select ok(tt.pv_line(1) is null and tt.pv_line(2) is null, 'what was billed is not offered again');
 select lives_ok($$select tt.apply(2, null, 2, 4000)$$, 'bill the rest (all lines: ids = null)');
+select is((select tenant_visible from public.charge_batches where request_id = tt.rq(2)), false, '...and false when one of the lines (L6) is owner-only');
 select is(tt.pv_n(), 0, 'nothing is left');
 select throws_ok($$select tt.apply(3, null, 0, 0)$$, 'P0001', 'nothing_to_charge', 'a second run on the same day (new request id) bills nothing: no double billing');
 select throws_ok($$select tt.apply(3, array[1, 2, 6, 7], 4, 11500)$$, 'P0001', 'nothing_to_charge', 'and a stale screen (the same lines ticked again) bills nothing either');
@@ -384,6 +387,7 @@ select is((tt.pv() ->> 'rate')::numeric, 2::numeric, '...rate');
 select is((tt.pv() ->> 'grace_days')::integer, 5, '...and grace');
 select ok(tt.pv_line(12) is null, 'grace 5: a line 5 days late is not late yet');
 select is(tt.pv_line(13), 200::bigint, 'grace 5: a line 6 days late = one started month: 100 x 2 % = 2.00');
+select is((select e ->> 'days' from jsonb_array_elements(tt.pv() -> 'lines') e where e ->> 'charge_id' = tt.cid(13)::text), '1', 'grace 5: the days shown start after the grace (1 late day, not 6)');
 select is(jsonb_array_length(tt.pv() -> 'lines'), 2, 'under the new rules two lines have something to bill: L2 and L13');
 select is(tt.pv_line(2), 167::bigint, 'L2 (monthly, 2 %): 500 x 2 % = 10.00, 8.33 is billed (the cancelled one counts): 1.67');
 select is(tt.pv_over(1), -4333::bigint, 'L1: two started months of 1000 x 2 % = 40.00, but 83.33 is billed: 43.33 too high');
@@ -396,6 +400,24 @@ update public.companies set settings = '{}' where id = '10000000-0000-0000-0000-
 select pg_temp.act_as(tt.u('AD'));
 select is(tt.pv_n(), 0, 'back to the default rules: everything is billed, nothing is left');
 reset role;
+-- settings written by hand (SQL editor) cannot break the calculation: the same limits as the settings screen
+update public.companies set settings = '{"rules":{"late_fee_rate":50,"late_fee_method":"weekly","grace_days":99}}' where id = '10000000-0000-0000-0000-0000000000c1';
+select pg_temp.act_as(tt.u('AD'));
+select is((tt.pv() ->> 'rate')::numeric, 10::numeric, 'a saved rate above 10 is read as 10');
+select is(tt.pv() ->> 'method', 'daily', 'an unknown saved method is read as daily');
+select is((tt.pv() ->> 'grace_days')::integer, 60, 'a saved grace above 60 is read as 60');
+reset role;
+update public.companies set settings = '{"rules":{"late_fee_rate":-3,"grace_days":-5}}' where id = '10000000-0000-0000-0000-0000000000c1';
+select pg_temp.act_as(tt.u('AD'));
+select is((tt.pv() ->> 'rate')::numeric, 0::numeric, 'a negative saved rate is read as 0');
+select is((tt.pv() ->> 'grace_days')::integer, 0, 'a negative saved grace is read as 0');
+reset role;
+update public.companies set settings = '{"rules":{"late_fee_rate":"abc","grace_days":"x"}}' where id = '10000000-0000-0000-0000-0000000000c1';
+select pg_temp.act_as(tt.u('AD'));
+select is((tt.pv() ->> 'rate')::numeric, 5::numeric, 'a saved rate that is not a number is read as the default 5');
+select is((tt.pv() ->> 'grace_days')::integer, 0, 'a saved grace that is not a number is read as 0');
+reset role;
+update public.companies set settings = '{}' where id = '10000000-0000-0000-0000-0000000000c1';
 
 -- (f) the fee type must be there and in use
 select pg_temp.line(14, 4, 'aidat', 100, -10, true, false, tt.b2());                 -- 10 days late: 100 x 10 x 5 / 3000 = 1.67
@@ -455,6 +477,26 @@ select lives_ok($$select public.void_charge_batch((select b.id from public.charg
 select is(tt.pv_n(), 0, '...and its fees are not charged again');
 select is((select count(*)::integer from public.charges where late_fee_source_id = tt.cid(1) and voided_at is null), 1, 'L1 keeps its other (later) fee line');
 reset role;
+-- a batch whose debts only have FORGIVEN fee lines can be cancelled
+insert into public.charge_batches (id, site_id, charge_type_id, target, split_method, amount, unit_count, total, due_date, tenant_visible)
+values ('d0000000-0000-0000-0000-000000000003', tt.sx(), tt.ty('aidat'), '{"scope":"site"}', 'per_unit', 1, 1, 1, tt.today(), true);
+select pg_temp.line(15, 4, 'aidat', 100, -10, true, false, 'd0000000-0000-0000-0000-000000000003');
+select pg_temp.act_as(tt.u('AD'));
+select lives_ok($$select tt.apply(9, array[15], 1, 167)$$, 'bill L15 (alone in batch 3)');
+select lives_ok($$select public.void_charge((select id from public.charges where late_fee_source_id = tt.cid(15)), 'affedildi')$$, '...and forgive it');
+select lives_ok($$select public.void_charge_batch('d0000000-0000-0000-0000-000000000003', 'hatalı toplu borç')$$, 'now the batch of that debt can be cancelled (forgiven fees do not block it)');
+reset role;
+-- the day of a payment is the ISTANBUL day: a payment at 00:30 local time is still that day (in UTC it would be the day before)
+select pg_temp.line(16, 4, 'aidat', 100, -10, true, false, tt.b2());
+insert into public.payments (id, unit_id, unit_label, amount, method, provider, receipt_no, paid_at)
+values ('90000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000004', 'A Blok 4', 100, 'cash', 'manual', 'MKB-2026-900003',
+        ((tt.today() - 3) + time '00:30') at time zone 'Europe/Istanbul');
+insert into public.payment_allocations (payment_id, charge_id, amount) values ('90000000-0000-0000-0000-000000000003', tt.cid(16), 100);
+select pg_temp.act_as(tt.u('AD'));
+select is(tt.pv_line(16), 117::bigint, 'a payment at 00:30 Istanbul time counts for that day: 7 late days of 100 = 1.17 (not 6 days = 1.00)');
+reset role;
+-- a debt that has fee lines cannot be removed behind the functions' back either (the foreign key is the last guard)
+select throws_ok($$delete from public.charges where id = tt.cid(1)$$, '23503', null, 'deleting a debt that has fee lines is stopped by the foreign key');
 select ok(exists (select 1 from public.audit_log a where a.table_name = 'charges' and a.new_data ->> 'late_fee_source_id' is not null), 'the fee lines are in the audit log');
 
 select * from finish();
