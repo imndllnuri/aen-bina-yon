@@ -235,10 +235,15 @@ try {
   const aOtherSiteAdmin = await call('adminA', { action: 'admin-link', siteId: ids.site1, profileId: users.adminB.id })
   check('55 a link for an admin of ANOTHER company (who has not finished onboarding) -> 403', aOtherSiteAdmin.status === 403, JSON.stringify(aOtherSiteAdmin.json))
 
+  const probeInactive = await call('staff', adminBody({ email: users.stranger.email, fullName: 'Yabancı' }))
+  check('56 a non-admin (staff) asking with the e-mail of a DEACTIVATED account gets 403, not "account_inactive" (nothing is learned)', probeInactive.status === 403 && probeInactive.json?.error === 'forbidden', JSON.stringify(probeInactive.json))
+  const probeOther = await call('staff', adminBody({ email: users.adminB.email, fullName: 'Admin B' }))
+  check('57 ...and the same with the e-mail of another company\'s account (403, not "email_in_use_elsewhere")', probeOther.status === 403 && probeOther.json?.error === 'forbidden', JSON.stringify(probeOther.json))
+
   console.log('--- hygiene ---')
   const logs = execSync(`docker logs --since ${startedAt} supabase_edge_runtime_aen-bina-yon 2>&1 || true`).toString()
   const leakedInLogs = /access_token|refresh_token|verify\?token|action_link|token_hash/i.test(logs)
-  check('56 no link or token appears in the function logs', !leakedInLogs, leakedInLogs ? logs.split('\n').filter((l) => /token|action_link/i.test(l)).slice(0, 2).join(' | ') : '')
+  check('58 no link or token appears in the function logs', !leakedInLogs, leakedInLogs ? logs.split('\n').filter((l) => /token|action_link/i.test(l)).slice(0, 2).join(' | ') : '')
 } finally {
   // ---- cleanup (never leave test data behind) ----
   try {
