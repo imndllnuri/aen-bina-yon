@@ -34,6 +34,7 @@ check('the slice 7 pages are in the live bundle', all(x in text for x in ['Haval
 check('the slice 8 pages are in the live bundle', all(x in text for x in ['Son duyurular', 'Okuma raporu', 'Bildirimler', 'Okumayanlara tekrar gönder', 'Yeni duyuru']))
 check('the slice 9 pages are in the live bundle', all(x in text for x in ['Yeni talep', 'Telefonla talep aç', 'sakin görmez', 'talep-fotolari', 'Çözümü değerlendirin']))
 check('the slice 10 pages are in the live bundle (Tabloyu göster, İşlem Geçmişi, Hazirun cetveli, Yazdır / PDF, Excel’e aktar, Borç türleri, Hatırlatma Gönder)', all(x in text for x in ['Tabloyu göster', 'İşlem Geçmişi', 'Hazirun cetveli', 'Yazdır / PDF', 'Excel’e aktar', 'Borç türleri', 'Hatırlatma Gönder']))
+check('the slice 11 page is in the live bundle (Profilim, E-posta bildirimleri, Şifreyi değiştir, Diğer cihazlardaki oturumları kapat)', all(x in text for x in ['Profilim', 'E-posta bildirimleri', 'Şifreyi değiştir', 'Diğer cihazlardaki oturumları kapat']))
 check('NO secret key in the live bundle', not re.search(r'sb_secret_[A-Za-z0-9_-]{16,}', text))
 check('no service_role key in the live bundle', 'service_role' not in text)
 
@@ -103,6 +104,15 @@ st, b, _ = get(f'{API}/rest/v1/charge_types', H, 'POST', json.dumps({'company_id
 check(f'a visitor cannot insert a charge type directly (HTTP {st})', st in (401, 403), b[:120])
 st, b, _ = get(f'{API}/rest/v1/companies?id=eq.{UUID}', H, 'PATCH', json.dumps({'settings': {'payment_mode': 'mock'}}).encode())
 check(f'a visitor cannot change company settings (HTTP {st})', st in (401, 403) or (st == 200 and b.strip() in (b'', b'[]')), b[:100])
+
+print('7. SLICE 11: A VISITOR CANNOT TOUCH PROFILES OR THE E-MAIL CHOICES')
+rpc_group('   (function)', {'save_my_notification_prefs': {'p_prefs': {'email_finance': False}}})
+st, b, _ = get(f'{API}/rest/v1/profiles?select=id,notify_prefs', H)
+check(f'profiles cannot be read by a visitor (HTTP {st})', st in (401, 403) or b'permission denied' in b.lower() or b.strip() == b'[]', b[:120])
+st, b, _ = get(f'{API}/rest/v1/profiles?id=eq.{UUID}', H, 'PATCH', json.dumps({'notify_prefs': {}}).encode())
+check(f'a visitor cannot write notify_prefs (HTTP {st})', st in (401, 403), b[:120])
+st, b, _ = get(f'{API}/rest/v1/profiles?id=eq.{UUID}', H, 'PATCH', json.dumps({'full_name': 'x'}).encode())
+check(f'a visitor cannot change a name (HTTP {st})', st in (401, 403), b[:120])
 
 print(f'\nRESULT: {ok} passed, {fail} failed')
 sys.exit(1 if fail else 0)
