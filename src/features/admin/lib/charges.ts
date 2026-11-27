@@ -33,7 +33,9 @@ export const SPLIT_METHODS: { value: SplitMethod; label: string; amountLabel: st
   },
 ]
 
-export const SPLIT_LABELS: Record<SplitMethod, string> = {
+// 'late_fee' is the kind of batch the Gecikme Tazminatı page writes. It is not a way to split an amount, so it is not in SPLIT_METHODS.
+export const SPLIT_LABELS: Record<SplitMethod | 'late_fee', string> = {
+  late_fee: 'Gecikme hesabı',
   per_unit: 'Daire başı',
   equal: 'Eşit paylaşım',
   land_share: 'Arsa payına göre',
@@ -165,6 +167,10 @@ export function chargeErrorMessage(error: unknown, context: ChargeErrorContext =
       return 'Bu borcun ödemesi alınmış. Önce Tahsilatlar sayfasından ödemeyi iptal edin.'
     case 'batch_has_payments':
       return 'Bu işlemdeki borçlardan biri için ödeme alınmış. Önce Tahsilatlar sayfasından ödemeyi iptal edin.'
+    case 'has_late_fees':
+      return 'Bu borç için gecikme tazminatı yazılmış. Önce Gecikme Tazminatı satırlarını iptal edin.'
+    case 'batch_has_late_fees':
+      return 'Bu işlemdeki borçlar için gecikme tazminatı yazılmış, bu yüzden silinemez. Bunun yerine iptal edin.'
     case 'already_voided':
       return 'Bu kayıt zaten iptal edilmiş.'
     case 'delete_window_closed':

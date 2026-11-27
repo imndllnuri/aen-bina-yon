@@ -20,7 +20,9 @@ import {
 describe('split methods', () => {
   it('has a label and an amount label for every method the database knows', () => {
     expect(SPLIT_METHODS.map((m) => m.value).sort()).toEqual(['equal', 'gross_m2', 'land_share', 'per_unit'])
-    expect(Object.keys(SPLIT_LABELS).sort()).toEqual(['equal', 'gross_m2', 'land_share', 'per_unit'])
+    // 'late_fee' is the kind of batch of the Gecikme Tazminatı page: it has a label for the batch list, but it is NOT a way to split an amount
+    expect(Object.keys(SPLIT_LABELS).sort()).toEqual(['equal', 'gross_m2', 'land_share', 'late_fee', 'per_unit'])
+    expect(SPLIT_LABELS.late_fee).toBe('Gecikme hesabı')
   })
 
   it('says clearly whether the amount is per unit or a total to share', () => {
@@ -124,13 +126,18 @@ describe('chargeErrorMessage', () => {
       'target_invalid', 'no_units', 'split_invalid', 'amount_invalid', 'amount_too_small', 'missing_weight', 'preview_outdated',
       'charge_type_invalid', 'period_invalid', 'due_date_invalid', 'description_invalid', 'karar_invalid', 'karar_required',
       'already_generated', 'plan_inactive', 'name_invalid', 'day_invalid', 'reason_invalid', 'already_voided',
-      'delete_window_closed', 'charge_voided',
+      'delete_window_closed', 'charge_voided', 'has_late_fees', 'batch_has_late_fees',
     ]
     for (const code of codes) {
       const message = chargeErrorMessage(dbError(code))
       expect(message, code).not.toBe('İşlem şu anda yapılamadı. Lütfen biraz sonra tekrar deneyin.')
       expect(message, code).not.toContain(code)
     }
+  })
+
+  it('tells how to get out when a debt has late-fee lines (cancel those first / cancel the batch instead of deleting it)', () => {
+    expect(chargeErrorMessage(dbError('has_late_fees'))).toMatch(/Önce Gecikme Tazminatı satırlarını iptal edin/)
+    expect(chargeErrorMessage(dbError('batch_has_late_fees'))).toMatch(/silinemez.*iptal edin/)
   })
 
   it('never shows raw database text', () => {

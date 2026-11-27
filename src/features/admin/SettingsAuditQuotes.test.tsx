@@ -72,7 +72,11 @@ describe('Ayarlar', () => {
     await screen.findByLabelText(/Firma adı/)
     expect(screen.getByText(/Yeni borçlandırmalarda son ödeme tarihi bu güne göre hazır gelir.*Kullanımda\./)).toBeInTheDocument()
     expect(screen.getByText(/Aylık planın aidatı bundan fazla artarsa.*Kullanımda\./)).toBeInTheDocument()
-    expect(screen.getByText(/yalnızca kaydedilir/)).toBeInTheDocument()
+    // the late-fee values are used by the Gecikme Tazminatı page since slice 14 (nothing is written by itself)
+    expect(screen.getByText(/sayfasındaki hesapta kullanılır.*kendiliğinden yazılmaz/)).toBeInTheDocument()
+    expect(screen.queryByText(/yalnızca kaydedilir/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Gecikme Tazminatı' })).toHaveAttribute('href', '/yonetim/gecikme-tazminati')
+    expect(screen.getByText(/tüm gecikme süresi için yeni değerlerle yeniden yapılır/)).toBeInTheDocument()
     expect(screen.getByText(/sakinlerin ödeme ekranındaki tutar değişir.*Kullanımda\./)).toBeInTheDocument()
   })
   it('saves the company information (only the changed form is enabled)', async () => {

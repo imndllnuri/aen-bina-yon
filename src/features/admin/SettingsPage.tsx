@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { FormField } from '@/components/FormField'
 import { NativeSelect } from '@/components/NativeSelect'
@@ -140,7 +141,7 @@ function RulesCard({ company }: { company: CompanyView }) {
 
           <fieldset className="space-y-4">
             <legend className="text-sm font-semibold">Gecikme tazminatı</legend>
-            <p className="rounded-lg border bg-muted/40 p-3 text-sm">Bu üç değer <b>yalnızca kaydedilir</b>. Gecikme tazminatını hesaplayıp borç yazan bir sistem henüz yok; gelecekte bu değerleri kullanacak. Şimdilik tazminatı “Gecikme Tazminatı” borç türüyle elle yazabilirsiniz.</p>
+            <p className="rounded-lg border bg-muted/40 p-3 text-sm">Bu üç değer <Link to="/yonetim/gecikme-tazminati" className="font-medium underline underline-offset-2">Gecikme Tazminatı</Link> sayfasındaki hesapta kullanılır. Hiçbir şey kendiliğinden yazılmaz: hesaplanan liste önce size gösterilir, siz onaylayınca yazılır. Oranı ya da yöntemi sonradan değiştirirseniz hesap, borcun tüm gecikme süresi için yeni değerlerle yeniden yapılır: eksik kalan fark yazılır; fazla yazılmış olanlar ise “Fazla yazılmış” olarak gösterilir, kendiliğinden geri alınmaz.</p>
             <div className="grid gap-4 sm:grid-cols-3">
               <FormField id="ru-late" label="Oran (% / ay)" required error={errors.lateFeeRate?.message} hint="Kanunda aylık %5.">
                 {(props) => <Input {...props} {...register('lateFeeRate')} inputMode="decimal" />}

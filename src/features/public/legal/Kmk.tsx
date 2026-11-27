@@ -38,7 +38,7 @@ export function Kmk() {
       </LegalSection>
 
       <LegalSection title="5. Ödemenin gecikmesi">
-        <p>Ortak gider ve avans payını zamanında ödemeyen kat maliki için, kanun her gecikme ayına göre %5 oranında gecikme tazminatı öngörür (md. 20). Bu portalda gecikme tazminatı, yönetim tarafından “Gecikme Tazminatı” borç türüyle ayrıca yazılır.</p>
+        <p>Ortak gider ve avans payını zamanında ödemeyen kat maliki için, kanun her gecikme ayına göre %5 oranında gecikme tazminatı öngörür (md. 20). Bu portalda gecikme tazminatı, yönetim tarafından hesaplanıp listeyi kontrol ettikten sonra onaylanarak “Gecikme Tazminatı” borç türüyle yazılır; hiçbir tazminat kendiliğinden yazılmaz. Oran ve yöntem yönetim tarafından ayarlanır.</p>
       </LegalSection>
 
       <LegalSection title="6. Kiracılar">

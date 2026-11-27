@@ -84,6 +84,14 @@ describe('AdminLayout', () => {
     expect(within(menu).getByRole('link', { name: 'Sakinler' })).toHaveAttribute('href', '/yonetim/sakinler')
   })
 
+  it('has "Gecikme Tazminatı" in the Finans group, after Havale Onayları', () => {
+    mountLayout(<AdminLayout />, '/yonetim/daireler')
+    const menu = screen.getAllByRole('navigation', { name: 'Ana menü' })[0] as HTMLElement
+    const links = within(menu).getAllByRole('link').map((a) => a.textContent)
+    expect(within(menu).getByRole('link', { name: 'Gecikme Tazminatı' })).toHaveAttribute('href', '/yonetim/gecikme-tazminati')
+    expect(links.indexOf('Gecikme Tazminatı')).toBe(links.indexOf('Havale Onayları') + 1)
+  })
+
   it('has "İletişim Mesajları" in the İletişim group', () => {
     mountLayout(<AdminLayout />, '/yonetim/daireler')
     const menu = screen.getAllByRole('navigation', { name: 'Ana menü' })[0] as HTMLElement

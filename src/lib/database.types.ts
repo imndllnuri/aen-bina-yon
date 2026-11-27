@@ -201,14 +201,14 @@ isOneToOne: false
                   ]
                 },"charges": {
                   Row: {
-                    "amount": number,"batch_id": string,"charge_type_id": string,"created_at": string,"created_by": string | null,"description": string | null,"due_date": string,"id": string,"period": string | null,"tenant_visible": boolean,"unit_id": string,"updated_at": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                    "amount": number,"batch_id": string,"charge_type_id": string,"created_at": string,"created_by": string | null,"description": string | null,"due_date": string,"id": string,"late_fee_source_id": string | null,"late_fee_through": string | null,"period": string | null,"tenant_visible": boolean,"unit_id": string,"updated_at": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "amount": number,"batch_id": string,"charge_type_id": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date": string,"id"?: string,"period"?: string | null,"tenant_visible": boolean,"unit_id": string,"updated_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                    "amount": number,"batch_id": string,"charge_type_id": string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date": string,"id"?: string,"late_fee_source_id"?: string | null,"late_fee_through"?: string | null,"period"?: string | null,"tenant_visible": boolean,"unit_id": string,"updated_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Update: {
-                    "amount"?: number,"batch_id"?: string,"charge_type_id"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date"?: string,"id"?: string,"period"?: string | null,"tenant_visible"?: boolean,"unit_id"?: string,"updated_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                    "amount"?: number,"batch_id"?: string,"charge_type_id"?: string,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"due_date"?: string,"id"?: string,"late_fee_source_id"?: string | null,"late_fee_through"?: string | null,"period"?: string | null,"tenant_visible"?: boolean,"unit_id"?: string,"updated_at"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -234,6 +234,18 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "charges_late_fee_source_id_fkey"
+      columns: ["late_fee_source_id"]
+isOneToOne: false
+      referencedRelation: "charge_status"
+      referencedColumns: ["charge_id"]
+    },{
+      foreignKeyName: "charges_late_fee_source_id_fkey"
+      columns: ["late_fee_source_id"]
+isOneToOne: false
+      referencedRelation: "charges"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "charges_unit_id_fkey"
@@ -750,6 +762,9 @@ isOneToOne: false
 "announcement_target":
 { Args: { "p_id": string }; Returns: Json
                            },
+"apply_late_fees":
+{ Args: { "p_as_of": string,"p_charge_ids": (string)[],"p_expected_count": number,"p_expected_kurus": number,"p_request_id": string,"p_site": string }; Returns: string
+                           },
 "approve_transfer_notice":
 { Args: { "p_charge_ids": (string)[],"p_notice": string }; Returns: string
                            },
@@ -822,6 +837,9 @@ isOneToOne: false
 { Args: { "p_amount_kurus": number,"p_site": string,"p_split": string,"p_target": Json }; Returns: {
               "amount_kurus": number,"block_name": string,"door_no": string,"unit_id": string,"weight": number
             }[]
+                           },
+"preview_late_fees":
+{ Args: { "p_site": string }; Returns: Json
                            },
 "publish_announcement":
 { Args: { "p_id": string }; Returns: number

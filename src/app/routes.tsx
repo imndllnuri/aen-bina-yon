@@ -9,6 +9,7 @@ import { AdminAnnouncementsPage } from '@/features/admin/AnnouncementsPage'
 import { AdminDashboardPage } from '@/features/admin/DashboardPage'
 import { AuditPage } from '@/features/admin/AuditPage'
 import { AdminsPage } from '@/features/admin/AdminsPage'
+import { LateFeesPage } from '@/features/admin/LateFeesPage'
 import { ContactMessagesPage } from '@/features/admin/ContactMessagesPage'
 import { QuoteRequestsPage } from '@/features/admin/QuoteRequestsPage'
 import { ReportsPage } from '@/features/admin/ReportsPage'
@@ -105,6 +106,7 @@ export const routes: RouteObject[] = [
       { path: 'daireler', element: <UnitsPage /> },
       { path: 'sakinler', element: <ResidentsPage /> },
       { path: 'yoneticiler', element: <AdminsPage /> },
+      { path: 'gecikme-tazminati', element: <LateFeesPage /> },
       { path: 'borclandirma', element: <BorclandirmaPage /> },
       { path: 'tahsilatlar', element: <AdminPaymentsPage /> },
       { path: 'havale-onaylari', element: <TransferApprovalsPage /> },
