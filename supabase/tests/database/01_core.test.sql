@@ -33,13 +33,13 @@ select is((select count(*)::int from pg_tables where schemaname = 'public' and n
 -- add a name here ONLY when a migration adds a public function on purpose (and checks the caller inside).
 select is((select coalesce(array_agg(p.proname::text order by p.proname), array[]::text[]) from pg_proc p
            join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'),
-  array['accept_kvkk', 'add_request_comment', 'announcement_report', 'announcement_target', 'approve_transfer_notice', 'cancel_request', 'cancel_transfer_notice', 'create_charge_batch', 'create_request', 'dashboard_kpis',
-        'delete_announcement', 'delete_charge_batch', 'delete_charge_type', 'generate_recurring_batch', 'get_bank_accounts', 'get_receipt', 'list_announcements',
+  array['accept_kvkk', 'add_request_comment', 'add_site_admin', 'announcement_report', 'announcement_target', 'approve_transfer_notice', 'cancel_request', 'cancel_transfer_notice', 'create_charge_batch', 'create_request', 'dashboard_kpis',
+        'delete_announcement', 'delete_charge_batch', 'delete_charge_type', 'generate_recurring_batch', 'get_bank_accounts', 'get_receipt', 'list_announcements', 'list_site_admins',
         'mark_announcement_read', 'pay_charges_mock', 'preview_allocation', 'preview_announcement_audience', 'preview_charge_batch',
-        'publish_announcement', 'quote_payment', 'rate_request', 'record_manual_payment', 'reject_transfer_notice', 'report_attendance', 'report_collections', 'report_collections_summary', 'report_debts', 'report_monthly', 'report_residents', 'resend_announcement_unread',
+        'publish_announcement', 'quote_payment', 'rate_request', 'record_manual_payment', 'reject_transfer_notice', 'remove_site_admin', 'report_attendance', 'report_collections', 'report_collections_summary', 'report_debts', 'report_monthly', 'report_residents', 'resend_announcement_unread',
         'save_announcement', 'save_bank_accounts', 'save_charge_type', 'save_company_settings', 'save_my_notification_prefs', 'save_recurring_plan', 'set_profile_active', 'set_recurring_plan_active', 'set_request_status', 'set_request_triage',
         'submit_transfer_notice', 'unpublish_announcement', 'update_request', 'void_charge', 'void_charge_batch', 'void_payment'],
-  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: charge functions; 0005: payment functions; 0006: transfer and manual payment functions; 0007: announcement functions; 0008: request functions; 0009: dashboard, report, settings and charge type functions; 0010: save_my_notification_prefs)');
+  'public holds exactly the expected functions (0002: accept_kvkk, set_profile_active; 0003: charge functions; 0005: payment functions; 0006: transfer and manual payment functions; 0007: announcement functions; 0008: request functions; 0009: dashboard, report, settings and charge type functions; 0010: save_my_notification_prefs; 0012: list_site_admins, add_site_admin, remove_site_admin)');
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (inserted as postgres, which bypasses RLS)
@@ -200,9 +200,9 @@ select is((select count(*)::int from public.site_members m join public.sites s o
   '...and becomes admin of the new site');
 select throws_ok($$insert into public.sites (company_id, name) values ('10000000-0000-0000-0000-0000000000c2', 'Foreign')$$,
   '42501', null, 'admin cannot create a site in another company');
-select lives_ok($$insert into public.site_members (profile_id, site_id, role)
+select throws_ok($$insert into public.site_members (profile_id, site_id, role)
   values ('b3000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-0000000000a1', 'staff')$$,
-  'admin can add a member to their site');
+  '42501', null, 'admin can no longer add a member directly (0012: add_site_admin is the way, see 12_admins.test.sql)');
 select lives_ok($$insert into public.unit_residents (unit_id, profile_id, relation)
   values ('40000000-0000-0000-0000-000000000002', 'b2000000-0000-0000-0000-000000000002', 'tenant')$$,
   'admin can link a resident to a unit of their site');
