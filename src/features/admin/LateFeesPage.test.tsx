@@ -57,6 +57,12 @@ describe('Gecikme Tazminatı: the list', () => {
     expect(within(r).getByText(/1\.000,00/)).toBeInTheDocument()
     expect(within(r).getByText(/73,33/)).toBeInTheDocument()
   })
+  it('shows the unpaid part of a partly paid debt, not the whole debt', async () => {
+    open()
+    const r = await row(/B Blok · 3/)
+    expect(within(r).getByText(/500,00/)).toBeInTheDocument() // unpaid (principal is 1.000,00)
+    expect(within(r).queryByText(/1\.000,00/)).not.toBeInTheDocument()
+  })
   it('says what was written before for the same debt, and that an owner-only debt is owner-only', async () => {
     open()
     expect(within(await row(/B Blok · 3/)).getByText(/daha önce yazılan: .*5,00/)).toBeInTheDocument()

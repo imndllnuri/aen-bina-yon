@@ -32,7 +32,7 @@
 -- 1. Columns and the batch kind
 -- ---------------------------------------------------------------------------
 alter table public.charges
-  add column late_fee_source_id uuid references public.charges (id) on delete restrict,
+  add column late_fee_source_id uuid references public.charges (id) on delete cascade,
   add column late_fee_through   date,
   add constraint charges_late_fee_pair check ((late_fee_source_id is null) = (late_fee_through is null)),
   add constraint charges_late_fee_not_self check (late_fee_source_id is distinct from id);

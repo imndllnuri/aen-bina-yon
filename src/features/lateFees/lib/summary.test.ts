@@ -40,6 +40,10 @@ describe('ruleWarnings', () => {
     expect(w).toMatch(/%7,5/)
     expect(w).toMatch(/md\. 20/)
   })
+  it('warns for any rate above 5, even 5.5 (the law says 5)', () => {
+    expect(ruleWarnings({ rate: 5.5, method: 'daily' })).toHaveLength(1)
+    expect(ruleWarnings({ rate: 5.01, method: 'daily' })).toHaveLength(1)
+  })
   it('warns about the started-month method', () => {
     const warnings = ruleWarnings({ rate: 5, method: 'monthly' })
     expect(warnings).toHaveLength(1)
